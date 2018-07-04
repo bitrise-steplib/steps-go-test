@@ -8,14 +8,15 @@
     "colorstring",
     "command",
     "errorutil",
+    "fileutil",
     "log",
     "pathutil"
   ]
-  revision = "b33f6bcef9b50045d7e62364b354584afc3ee329"
+  revision = "d1de0dbcb811588e61362aff67bb700b93c13c17"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "efb5fd3e55416e8f3ece48b74f5358230012e0d833ee46fd8c22203d0bda47da"
+  inputs-digest = "359d05564990cb4c21e9a0a821f1a9dab4efe61b2d4f92f26129c4a94557d15b"
   solver-name = "gps-cdcl"
   solver-version = 1

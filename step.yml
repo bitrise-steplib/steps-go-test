@@ -30,3 +30,12 @@ inputs:
       Newline (`\n`) separated list of go packages, to run the go test command against.
 
       Example: `github.com/my/step\ngithub.com/bitrise/step/tool`
+- code_coverage_path: $BITRISE_DEPLOY_DIR/coverage.txt
+  opts:
+    title: Destination path of the code coverage report file
+    summary: Destination path of the code coverage report file
+    description: |-
+      If this input is specified code coverage will be generated  
+      by running: go test -v -race -coverprofile=tmp/coverage/path -covermode=atomic against every package.  
+      Each package's coverage report will be appended to the file defined by this input.
+outputs:
