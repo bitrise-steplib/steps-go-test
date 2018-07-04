@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-tools/go-steputils/tools"
 )
 
 func failf(format string, args ...interface{}) {
@@ -16,13 +18,43 @@ func failf(format string, args ...interface{}) {
 	os.Exit(1)
 }
 
+func packageCodeCoveragePath() (string, error) {
+	tmpDir, err := pathutil.NormalizedOSTempDirPath("go-test")
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(tmpDir, "profile.out"), nil
+}
+
+func codeCoveragePath() (string, error) {
+	deployDir := os.Getenv("BITRISE_DEPLOY_DIR")
+	if deployDir == "" {
+		return "", fmt.Errorf("BITRISE_DEPLOY_DIR env not set")
+	}
+	return filepath.Join(deployDir, "bitrise_code_coverage.txt"), nil
+}
+
+func appendPackageCoverageAndDelete(packageCoveragePth, coveragePth string) error {
+	content, err := fileutil.ReadStringFromFile(packageCoveragePth)
+	if err != nil {
+		return fmt.Errorf("Failed to read package cover profile: %s", err)
+	}
+
+	if err := fileutil.AppendStringToFile(coveragePth, content); err != nil {
+		return fmt.Errorf("Failed to append package cover profile: %s", err)
+	}
+
+	if err := os.RemoveAll(packageCoveragePth); err != nil {
+		return fmt.Errorf("Failed to append package cover profile: %s", err)
+	}
+	return nil
+}
+
 func main() {
 	packages := os.Getenv("packages")
-	codeCoveragePath := os.Getenv("code_coverage_path")
 
 	log.Infof("Configs:")
 	log.Printf("- packages: %s", packages)
-	log.Printf("- code_coverage_path: %s", codeCoveragePath)
 
 	if packages == "" {
 		failf("Required input not defined: packages")
@@ -30,25 +62,18 @@ func main() {
 
 	log.Infof("\nRunning go test...")
 
-	args := []string{"test", "-v"}
+	packageCodeCoveragePth, err := packageCodeCoveragePath()
+	if err != nil {
+		failf(err.Error())
+	}
 
-	var packageCoverProfilePth string
-	if codeCoveragePath != "" {
-		if err := os.MkdirAll(filepath.Dir(codeCoveragePath), 0777); err != nil {
-			failf("Failed to make dir: %s", err)
-		}
-
-		tmpDir, err := pathutil.NormalizedOSTempDirPath("go-test")
-		if err != nil {
-			failf("Failed to create tmp dir: %s", err)
-		}
-		packageCoverProfilePth = filepath.Join(tmpDir, "profile.out")
-
-		args = append(args, "-race", "-coverprofile="+packageCoverProfilePth, "-covermode=atomic")
+	codeCoveragePth, err := codeCoveragePath()
+	if err != nil {
+		failf(err.Error())
 	}
 
 	for _, p := range strings.Split(packages, "\n") {
-		cmd := command.NewWithStandardOuts("go", append(args, p)...)
+		cmd := command.NewWithStandardOuts("go", "test", "-v", "-race", "-coverprofile="+packageCodeCoveragePth, "-covermode=atomic", p)
 
 		log.Printf("$ %s", cmd.PrintableCommandArgs())
 
@@ -56,19 +81,14 @@ func main() {
 			failf("go test failed: %s", err)
 		}
 
-		if codeCoveragePath != "" {
-			coverProfileContent, err := fileutil.ReadStringFromFile(packageCoverProfilePth)
-			if err != nil {
-				failf("Failed to read package cover profile: %s", err)
-			}
-
-			if err := fileutil.AppendStringToFile(codeCoveragePath, coverProfileContent); err != nil {
-				failf("Failed to append package cover profile: %s", err)
-			}
-
-			if err := os.RemoveAll(packageCoverProfilePth); err != nil {
-				failf("Failed to append package cover profile: %s", err)
-			}
+		if err := appendPackageCoverageAndDelete(packageCodeCoveragePth, codeCoveragePth); err != nil {
+			failf(err.Error())
 		}
 	}
+
+	if err := tools.ExportEnvironmentWithEnvman("CODE_COVERAGE_REPORT_PATH", codeCoveragePth); err != nil {
+		failf("Failed to export CODE_COVERAGE_REPORT_PATH=%s", codeCoveragePth)
+	}
+
+	log.Donef("\ncode coverage is available: CODE_COVERAGE_REPORT_PATH=%s", codeCoveragePth)
 }
