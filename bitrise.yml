@@ -31,7 +31,7 @@ workflows:
             #!/usr/bin/env bash
             echo "code coverage report: ${GO_CODE_COVERAGE_REPORT_PATH}"
             if [ ! -f "${GO_CODE_COVERAGE_REPORT_PATH}" ]; then
-              echo "error: there is no GO_CODE_COVERAGE_REPORT_PATH env var specified"
+              echo "The file at GO_CODE_COVERAGE_REPORT_PATH does not exist"
               exit 1
             fi
 

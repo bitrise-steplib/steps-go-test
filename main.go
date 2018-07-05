@@ -31,6 +31,9 @@ func codeCoveragePath() (string, error) {
 	if deployDir == "" {
 		return "", fmt.Errorf("BITRISE_DEPLOY_DIR env not set")
 	}
+	if err := os.MkdirAll(deployDir, 0777); err != nil {
+		return "", fmt.Errorf("Failed to create BITRISE_DEPLOY_DIR: %s", err)
+	}
 	return filepath.Join(deployDir, "go_code_coverage.txt"), nil
 }
 
