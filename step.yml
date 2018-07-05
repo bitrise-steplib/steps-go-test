@@ -31,10 +31,8 @@ inputs:
 
       Example: `github.com/my/step\ngithub.com/bitrise/step/tool`
 outputs:
-- CODE_COVERAGE_REPORT_PATH:
+- GO_CODE_COVERAGE_REPORT_PATH:
   opts:
     title: Code coverage report file path
     summary: Code coverage report file path
-    description: |-
-      If `enable_coverage` is set to: `yes`, this oputput will point to the  
-      code coverage report path, which contains the package coverage reports.
+    description: Path to the code coverage report file, which contains each package's code coverage report.
