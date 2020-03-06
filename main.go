@@ -84,7 +84,8 @@ func main() {
 
 	packageList := strings.Split(packages, "\n")
 	packagesCommaSeparated := strings.Join(packageList, ",")
-	cmd := command.NewWithStandardOuts("go", "test", "-v", "-race", "-coverprofile="+packageCodeCoveragePth, "-covermode=atomic", "-coverpkg="+packagesCommaSeparated)
+	log.Printf(packagesCommaSeparated)
+	cmd := command.NewWithStandardOuts("go", "test", "-v", "-race", "-coverprofile="+packageCodeCoveragePth, "-covermode=atomic", "-coverpkg="+packagesCommaSeparated, "./...")
 
 	log.Printf("$ %s", cmd.PrintableCommandArgs())
 
