@@ -82,10 +82,12 @@ func main() {
 		failf(err.Error())
 	}
 
-	for _, p := range strings.Split(packages, "\n") {
-		cmd := command.NewWithStandardOuts("go", "test", "-v", "-race", "-coverprofile="+packageCodeCoveragePth, "-covermode=atomic", p)
+	packageList := strings.Split(packages, "\n")
+	packagesCommaSeparated := strings.Join(packageList, ",")
 
-		log.Printf("$ %s", cmd.PrintableCommandArgs())
+	for _, p := range packageList {
+		cmd := command.NewWithStandardOuts("go", "test", "-v", "-race", "-coverprofile="+packageCodeCoveragePth, "-covermode=atomic", "-coverpkg="+packagesCommaSeparated, p)
+		log.Infof("$ %s", cmd.PrintableCommandArgs())
 
 		if err := cmd.Run(); err != nil {
 			failf("go test failed: %s", err)
