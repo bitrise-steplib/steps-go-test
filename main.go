@@ -84,17 +84,18 @@ func main() {
 
 	packageList := strings.Split(packages, "\n")
 	packagesCommaSeparated := strings.Join(packageList, ",")
-	log.Printf(packagesCommaSeparated)
-	cmd := command.NewWithStandardOuts("go", "test", "-v", "-race", "-coverprofile="+packageCodeCoveragePth, "-covermode=atomic", "-coverpkg="+packagesCommaSeparated, "./...")
 
-	log.Printf("$ %s", cmd.PrintableCommandArgs())
+	for _, p := range packageList {
+		cmd := command.NewWithStandardOuts("go", "test", "-v", "-race", "-coverprofile="+packageCodeCoveragePth, "-covermode=atomic", "-coverpkg="+packagesCommaSeparated, p)
+		log.Infof("$ %s", cmd.PrintableCommandArgs())
 
-	if err := cmd.Run(); err != nil {
-		failf("go test failed: %s", err)
-	}
+		if err := cmd.Run(); err != nil {
+			failf("go test failed: %s", err)
+		}
 
-	if err := appendPackageCoverageAndRecreate(packageCodeCoveragePth, codeCoveragePth); err != nil {
-		failf(err.Error())
+		if err := appendPackageCoverageAndRecreate(packageCodeCoveragePth, codeCoveragePth); err != nil {
+			failf(err.Error())
+		}
 	}
 
 	if err := tools.ExportEnvironmentWithEnvman("GO_CODE_COVERAGE_REPORT_PATH", codeCoveragePth); err != nil {
