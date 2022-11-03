@@ -61,6 +61,21 @@ func appendPackageCoverageAndRecreate(packageCoveragePth, coveragePth string) er
 }
 
 func main() {
+	status, _ := run()
+	// if err != nil {
+	// log.Errorf(err)
+	// }
+	os.Exit(int(status))
+}
+
+type RunStatus int
+
+const (
+	Success RunStatus = iota
+	Failure
+)
+
+func run() (RunStatus, error) {
 	packages := os.Getenv("packages")
 
 	log.Infof("Configs:")
@@ -101,4 +116,5 @@ func main() {
 	}
 
 	log.Donef("\ncode coverage is available at: GO_CODE_COVERAGE_REPORT_PATH=%s", codeCoveragePth)
+	return Success, nil
 }
