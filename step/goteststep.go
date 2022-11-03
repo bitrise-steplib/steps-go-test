@@ -76,7 +76,7 @@ func (s Step) Run(config *Config) (*Result, error) {
 			return nil, fmt.Errorf("go test failed: %w", err)
 		}
 
-		if err := filesystem.AppendPackageCoverageAndRecreate(packageCodeCoveragePth, codeCoveragePth); err != nil {
+		if err := filesystem.AppendPackageCoverageAndRecreate(packageCodeCoveragePth, codeCoveragePth, s.logger); err != nil {
 			return nil, err
 		}
 	}

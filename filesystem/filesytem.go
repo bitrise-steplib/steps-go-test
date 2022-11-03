@@ -3,10 +3,10 @@ package filesystem
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
 )
 
@@ -33,13 +33,13 @@ func CodeCoveragePath() (string, error) {
 	return filepath.Join(deployDir, "go_code_coverage.txt"), nil
 }
 
-func AppendPackageCoverageAndRecreate(packageCoveragePth, coveragePth string) error {
+func AppendPackageCoverageAndRecreate(packageCoveragePth, coveragePth string, logger log.Logger) error {
 	bytes, err := os.ReadFile(packageCoveragePth)
 	if err != nil {
 		return fmt.Errorf("Failed to read package code coverage report file: %s", err)
 	}
 
-	if err := appendBytesToFile(coveragePth, bytes); err != nil {
+	if err := appendBytesToFile(coveragePth, bytes, logger); err != nil {
 		return fmt.Errorf("Failed to append package code coverage report: %s", err)
 	}
 
@@ -54,7 +54,7 @@ func AppendPackageCoverageAndRecreate(packageCoveragePth, coveragePth string) er
 
 // Stolen from v1 of fileutil
 // https://github.com/bitrise-io/go-utils/blob/9e20aaef213f7fe1e50290b4a5f78edb1e518713/fileutil/fileutil.go
-func appendBytesToFile(pth string, fileCont []byte) error {
+func appendBytesToFile(pth string, fileCont []byte, logger log.Logger) error {
 	if pth == "" {
 		return errors.New("No path provided")
 	}
@@ -74,7 +74,7 @@ func appendBytesToFile(pth string, fileCont []byte) error {
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			log.Println(" [!] Failed to close file:", err)
+			logger.Warnf(" [!] Failed to close file: %w", err)
 		}
 	}()
 

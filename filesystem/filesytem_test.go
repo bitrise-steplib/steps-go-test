@@ -5,6 +5,8 @@ import (
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/bitrise-io/go-utils/v2/log"
 )
 
 func TestCreatePackageCodeCoverageFile(t *testing.T) {
@@ -57,6 +59,8 @@ func TestCodeCoveragePath(t *testing.T) {
 }
 
 func TestAppendPackageCoverageAndRecreate(t *testing.T) {
+	logger := log.NewLogger()
+
 	type args struct {
 		packageCoveragePth string
 		coveragePth        string
@@ -90,7 +94,7 @@ func TestAppendPackageCoverageAndRecreate(t *testing.T) {
 				}
 			}()
 
-			if err := AppendPackageCoverageAndRecreate(tt.args.packageCoveragePth, tt.args.coveragePth); (err != nil) != tt.wantErr {
+			if err := AppendPackageCoverageAndRecreate(tt.args.packageCoveragePth, tt.args.coveragePth, logger); (err != nil) != tt.wantErr {
 				t.Errorf("AppendPackageCoverageAndRecreate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
