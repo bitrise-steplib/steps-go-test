@@ -3,6 +3,7 @@ package filesystem
 import (
 	"os"
 	"path"
+	"strings"
 	"testing"
 )
 
@@ -50,6 +51,57 @@ func TestCodeCoveragePath(t *testing.T) {
 
 			if _, err := os.Stat(dir); err != nil {
 				t.Errorf("CodeCoveragePath() = %v, err %v", got, err)
+			}
+		})
+	}
+}
+
+func TestAppendPackageCoverageAndRecreate(t *testing.T) {
+	type args struct {
+		packageCoveragePth string
+		coveragePth        string
+	}
+	type contents struct {
+		pkg string
+		cov string
+	}
+	tests := []struct {
+		name     string
+		args     args
+		contents contents
+		wantErr  bool
+	}{
+		{
+			"Integration AppendPackageCoverageAndRecreate",
+			args{"pkg.txt", "cov.txt"},
+			contents{"foo", "bar"},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			os.WriteFile(tt.args.packageCoveragePth, []byte(tt.contents.pkg), 0644)
+			os.WriteFile(tt.args.coveragePth, []byte(tt.contents.cov), 0644)
+
+			defer func() {
+				os.Remove(tt.args.packageCoveragePth)
+				if _, err := os.Stat(tt.args.coveragePth); err == nil {
+					os.Remove(tt.args.coveragePth)
+				}
+			}()
+
+			if err := AppendPackageCoverageAndRecreate(tt.args.packageCoveragePth, tt.args.coveragePth); (err != nil) != tt.wantErr {
+				t.Errorf("AppendPackageCoverageAndRecreate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			bytes, err := os.ReadFile(tt.args.coveragePth)
+			if err != nil {
+				t.Errorf("Error reading file %v; error = %v", tt.args.packageCoveragePth, err)
+			}
+
+			contents := string(bytes)
+			if !strings.HasPrefix(contents, tt.contents.cov) || !strings.HasSuffix(contents, tt.contents.pkg) {
+				t.Errorf("Error with order of contents: '%v'", contents)
 			}
 		})
 	}
