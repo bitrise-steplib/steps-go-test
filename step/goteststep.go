@@ -6,13 +6,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-steplib/steps-go-test/filesystem"
 	"github.com/bitrise-tools/go-steputils/tools"
 )
 
 type Step struct {
+	env    env.Repository
 	logger log.Logger
 }
 
@@ -22,8 +24,9 @@ type Config struct {
 type Result struct {
 }
 
-func CreateStep(logger log.Logger) Step {
+func CreateStep(env env.Repository, logger log.Logger) Step {
 	return Step{
+		env:    env,
 		logger: logger,
 	}
 }
@@ -55,7 +58,15 @@ func (s Step) Run(config *Config) (*Result, error) {
 	}
 
 	for _, p := range strings.Split(packages, "\n") {
-		cmd := command.NewWithStandardOuts("go", "test", "-v", "-race", "-coverprofile="+packageCodeCoveragePth, "-covermode=atomic", p)
+		args := []string{
+			"test",
+			"-v",
+			"-race",
+			"-coverageprofile=" + packageCodeCoveragePth,
+			"-covermode=atomic",
+			p,
+		}
+		cmd := command.NewFactory(s.env).Create("go", args, nil)
 
 		s.logger.Printf("$ %s", cmd.PrintableCommandArgs())
 

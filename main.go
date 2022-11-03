@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-steplib/steps-go-test/step"
 )
@@ -24,7 +25,9 @@ const (
 )
 
 func run(logger log.Logger) (RunStatus, error) {
-	step := step.CreateStep(logger)
+	envRepository := env.NewRepository()
+
+	step := step.CreateStep(envRepository, logger)
 	config, err := step.ProcessConfig()
 	if err != nil {
 		return Failure, err
