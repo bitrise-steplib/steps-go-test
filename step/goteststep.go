@@ -10,8 +10,9 @@ import (
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-steplib/steps-go-test/filesystem"
-	"github.com/bitrise-tools/go-steputils/tools"
 )
+
+const CodeCoverageReportPathExportName = "GO_CODE_COVERAGE_REPORT_PATH"
 
 type Step struct {
 	env    env.Repository
@@ -22,6 +23,7 @@ type Config struct {
 }
 
 type Result struct {
+	codeCoveragePath string
 }
 
 func CreateStep(env env.Repository, logger log.Logger) Step {
@@ -79,15 +81,16 @@ func (s Step) Run(config *Config) (*Result, error) {
 		}
 	}
 
-	if err := tools.ExportEnvironmentWithEnvman("GO_CODE_COVERAGE_REPORT_PATH", codeCoveragePth); err != nil {
-		return nil, fmt.Errorf("Failed to export GO_CODE_COVERAGE_REPORT_PATH=%s", codeCoveragePth)
-	}
-
-	s.logger.Donef("\ncode coverage is available at: GO_CODE_COVERAGE_REPORT_PATH=%s", codeCoveragePth)
-
-	return &Result{}, nil
+	return &Result{
+		codeCoveragePth,
+	}, nil
 }
 
 func (s Step) ExportOutputs(result *Result) error {
+	if err := s.env.Set(CodeCoverageReportPathExportName, result.codeCoveragePath); err != nil {
+		return fmt.Errorf("Failed to export %s=%s", CodeCoverageReportPathExportName, result.codeCoveragePath)
+	}
+
+	s.logger.Donef("\ncode coverage is available at: %s=%s", CodeCoverageReportPathExportName, result.codeCoveragePath)
 	return nil
 }
