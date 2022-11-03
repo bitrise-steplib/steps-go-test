@@ -3,14 +3,15 @@ package main
 import (
 	"os"
 
-	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-steplib/steps-go-test/step"
 )
 
 func main() {
-	status, err := run()
+	logger := log.NewLogger()
+	status, err := run(logger)
 	if err != nil {
-		log.Errorf(err.Error())
+		logger.Errorf(err.Error())
 	}
 	os.Exit(int(status))
 }
@@ -22,8 +23,8 @@ const (
 	Failure
 )
 
-func run() (RunStatus, error) {
-	step := step.CreateStep()
+func run(logger log.Logger) (RunStatus, error) {
+	step := step.CreateStep(logger)
 	config, err := step.ProcessConfig()
 	if err != nil {
 		return Failure, err
