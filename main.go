@@ -45,7 +45,7 @@ func run() (RunStatus, error) {
 
 	packageCodeCoveragePth, err := filesystem.CreatePackageCodeCoverageFile()
 	if err != nil {
-		failf(err.Error())
+		return Failure, err
 	}
 
 	codeCoveragePth, err := filesystem.CodeCoveragePath()
