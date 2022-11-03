@@ -7,11 +7,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/bitrise-io/go-utils/pathutil"
+	"github.com/bitrise-io/go-utils/v2/pathutil"
 )
 
 func CreatePackageCodeCoverageFile() (string, error) {
-	tmpDir, err := pathutil.NormalizedOSTempDirPath("go-test")
+	tmpDir, err := pathutil.NewPathProvider().CreateTempDir("go-test")
 	if err != nil {
 		return "", fmt.Errorf("Failed to create tmp dir for code coverage reports: %s", err)
 	}
