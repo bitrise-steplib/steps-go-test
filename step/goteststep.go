@@ -64,7 +64,7 @@ func (s Step) Run(config *Config) (*Result, error) {
 			"test",
 			"-v",
 			"-race",
-			"-coverageprofile=" + packageCodeCoveragePth,
+			"-coverprofile=" + packageCodeCoveragePth,
 			"-covermode=atomic",
 			p,
 		}
