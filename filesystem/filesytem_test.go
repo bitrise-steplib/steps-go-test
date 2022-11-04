@@ -27,13 +27,13 @@ func TestCreatePackageCodeCoverageFile(t *testing.T) {
 				t.Errorf("CreatePackageCodeCoverageFile() = '%v'", got)
 			}
 
-			os.Remove(got)
+			panicIfErr(os.Remove(got))
 		})
 	}
 }
 
 func TestCodeCoveragePath(t *testing.T) {
-	os.Setenv("BITRISE_DEPLOY_DIR", "test_dir")
+	panicIfErr(os.Setenv("BITRISE_DEPLOY_DIR", "test_dir"))
 
 	tests := []struct {
 		name    string
@@ -49,7 +49,7 @@ func TestCodeCoveragePath(t *testing.T) {
 				return
 			}
 			dir := path.Dir(got)
-			defer func() { os.Remove(dir) }()
+			defer func() { panicIfErr(os.Remove(dir)) }()
 
 			if _, err := os.Stat(dir); err != nil {
 				t.Errorf("CodeCoveragePath() = %v, err %v", got, err)
@@ -84,18 +84,13 @@ func TestAppendPackageCoverageAndRecreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := os.WriteFile(tt.args.packageCoveragePth, []byte(tt.contents.pkg), 0644); err != nil {
-				panic(err)
-			}
-
-			if err := os.WriteFile(tt.args.coveragePth, []byte(tt.contents.cov), 0644); err != nil {
-				panic(err)
-			}
+			panicIfErr(os.WriteFile(tt.args.packageCoveragePth, []byte(tt.contents.pkg), 0644))
+			panicIfErr(os.WriteFile(tt.args.coveragePth, []byte(tt.contents.cov), 0644))
 
 			defer func() {
-				os.Remove(tt.args.packageCoveragePth)
+				panicIfErr(os.Remove(tt.args.packageCoveragePth))
 				if _, err := os.Stat(tt.args.coveragePth); err == nil {
-					os.Remove(tt.args.coveragePth)
+					panicIfErr(os.Remove(tt.args.coveragePth))
 				}
 			}()
 
@@ -113,5 +108,11 @@ func TestAppendPackageCoverageAndRecreate(t *testing.T) {
 				t.Errorf("Error with order of contents: '%v'", contents)
 			}
 		})
+	}
+}
+
+func panicIfErr(err error) {
+	if err != nil {
+		panic(err)
 	}
 }
