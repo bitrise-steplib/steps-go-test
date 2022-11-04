@@ -84,8 +84,13 @@ func TestAppendPackageCoverageAndRecreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.WriteFile(tt.args.packageCoveragePth, []byte(tt.contents.pkg), 0644)
-			os.WriteFile(tt.args.coveragePth, []byte(tt.contents.cov), 0644)
+			if err := os.WriteFile(tt.args.packageCoveragePth, []byte(tt.contents.pkg), 0644); err != nil {
+				panic(err)
+			}
+
+			if err := os.WriteFile(tt.args.coveragePth, []byte(tt.contents.cov), 0644); err != nil {
+				panic(err)
+			}
 
 			defer func() {
 				os.Remove(tt.args.packageCoveragePth)
