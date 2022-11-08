@@ -21,11 +21,15 @@ type Step struct {
 }
 
 type Config struct {
-	Packages string `env:"packages"`
+	Packages []string
 }
 
 type Result struct {
 	codeCoveragePath string
+}
+
+type envvars struct {
+	packages string `env:"packages"`
 }
 
 func CreateStep(env env.Repository, inputParser stepconf.InputParser, logger log.Logger, testRunner TestRunner) Step {
@@ -38,12 +42,14 @@ func CreateStep(env env.Repository, inputParser stepconf.InputParser, logger log
 }
 
 func (s Step) ProcessConfig() (*Config, error) {
-	var config Config
-	if err := s.inputParser.Parse(&config); err != nil {
+	var envvars envvars
+	if err := s.inputParser.Parse(&envvars); err != nil {
 		return nil, err
 	}
 
-	return &config, nil
+	return &Config{
+		Packages: strings.Split(envvars.packages, "\n"),
+	}, nil
 }
 
 func (s Step) Run(config *Config) (*Result, error) {
@@ -52,7 +58,7 @@ func (s Step) Run(config *Config) (*Result, error) {
 	s.logger.Infof("Configs:")
 	s.logger.Printf("- packages: %s", packages)
 
-	if packages == "" {
+	if len(packages) == 0 {
 		return nil, errors.New("Required input not defined: packages")
 	}
 
@@ -68,7 +74,7 @@ func (s Step) Run(config *Config) (*Result, error) {
 		return nil, err
 	}
 
-	for _, p := range strings.Split(packages, "\n") {
+	for _, p := range config.Packages {
 		testConfig := TestConfig{
 			PackageName:        p,
 			CoverageReportPath: codeCoveragePth,
