@@ -28,8 +28,9 @@ const (
 func run(logger log.Logger) (RunStatus, error) {
 	envRepository := env.NewRepository()
 	inputParser := stepconf.NewInputParser(envRepository)
+	testRunner := step.CreateDefaultTestRunner(envRepository, logger)
 
-	step := step.CreateStep(envRepository, inputParser, logger)
+	step := step.CreateStep(envRepository, inputParser, logger, testRunner)
 	config, err := step.ProcessConfig()
 	if err != nil {
 		return Failure, err

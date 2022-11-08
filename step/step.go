@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
-	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-steplib/steps-go-test/filesystem"
@@ -18,6 +17,7 @@ type Step struct {
 	env         env.Repository
 	inputParser stepconf.InputParser
 	logger      log.Logger
+	testRunner  TestRunner
 }
 
 type Config struct {
@@ -28,11 +28,12 @@ type Result struct {
 	codeCoveragePath string
 }
 
-func CreateStep(env env.Repository, inputParser stepconf.InputParser, logger log.Logger) Step {
+func CreateStep(env env.Repository, inputParser stepconf.InputParser, logger log.Logger, testRunner TestRunner) Step {
 	return Step{
 		env:         env,
 		inputParser: inputParser,
 		logger:      logger,
+		testRunner:  testRunner,
 	}
 }
 
@@ -68,20 +69,13 @@ func (s Step) Run(config *Config) (*Result, error) {
 	}
 
 	for _, p := range strings.Split(packages, "\n") {
-		args := []string{
-			"test",
-			"-v",
-			"-race",
-			"-coverprofile=" + packageCodeCoveragePth,
-			"-covermode=atomic",
-			p,
+		testConfig := TestConfig{
+			PackageName:        p,
+			CoverageReportPath: codeCoveragePth,
 		}
-		cmd := command.NewFactory(s.env).Create("go", args, nil)
 
-		s.logger.Printf("$ %s", cmd.PrintableCommandArgs())
-
-		if err := cmd.Run(); err != nil {
-			return nil, fmt.Errorf("go test failed: %w", err)
+		if err := s.testRunner.RunTest(testConfig); err != nil {
+			return nil, err
 		}
 
 		if err := filesystem.AppendPackageCoverageAndRecreate(packageCodeCoveragePth, codeCoveragePth, s.logger); err != nil {
