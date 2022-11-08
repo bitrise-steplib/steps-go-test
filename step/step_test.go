@@ -98,7 +98,11 @@ func TestStep_Run(t *testing.T) {
 				t.Errorf("Step.Run() = %v, want %v", got, tt.want)
 			}
 
-			ftr, _ := tt.fields.testRunner.(*fakeTestRunner)
+			ftr, ok := tt.fields.testRunner.(*fakeTestRunner)
+			if !ok {
+				panic("Test failed due to inability to cast interface to expected instance")
+			}
+
 			if ftr.wasRun != tt.wasTestRun {
 				t.Errorf("Test run status did not match expectation (%v == %v)", ftr.wasRun, tt.wasTestRun)
 			}
