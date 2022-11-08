@@ -6,8 +6,9 @@ import (
 )
 
 type CodeCoverageCollector interface {
-	PrepareAndReturnCoverageOutputPath(string) (string, error)
+	PrepareAndReturnCurrentPackageCoverageOutputPath(string) (string, error)
 	CollectCoverageResultsAndReset() error
+	FinishCollectionAndReturnPathToCollectedResults() string
 }
 
 func CreateDefaultCodeCoverageCollector(logger log.Logger) CodeCoverageCollector {
@@ -15,12 +16,12 @@ func CreateDefaultCodeCoverageCollector(logger log.Logger) CodeCoverageCollector
 }
 
 type filesystembasedCollector struct {
-	logger                      log.Logger
-	amalgamatedCodeCoveragePath string
-	codeCoverageOutputPath      string
+	logger                               log.Logger
+	amalgamatedCodeCoveragePath          string
+	currentPackageCodeCoverageOutputPath string
 }
 
-func (c *filesystembasedCollector) PrepareAndReturnCoverageOutputPath(outputDir string) (string, error) {
+func (c *filesystembasedCollector) PrepareAndReturnCurrentPackageCoverageOutputPath(outputDir string) (string, error) {
 	packageCodeCoveragePath, err := filesystem.CreatePackageCodeCoverageFile()
 	if err != nil {
 		return "", err
@@ -31,14 +32,18 @@ func (c *filesystembasedCollector) PrepareAndReturnCoverageOutputPath(outputDir 
 		return "", err
 	}
 
-	c.amalgamatedCodeCoveragePath = packageCodeCoveragePath
-	c.codeCoverageOutputPath = codeCoveragePath
+	c.amalgamatedCodeCoveragePath = codeCoveragePath
+	c.currentPackageCodeCoverageOutputPath = packageCodeCoveragePath
 	return codeCoveragePath, nil
 }
 
 func (c *filesystembasedCollector) CollectCoverageResultsAndReset() error {
-	if err := filesystem.AppendPackageCoverageAndRecreate(c.amalgamatedCodeCoveragePath, c.codeCoverageOutputPath, c.logger); err != nil {
+	if err := filesystem.AppendPackageCoverageAndRecreate(c.currentPackageCodeCoverageOutputPath, c.amalgamatedCodeCoveragePath, c.logger); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (c *filesystembasedCollector) FinishCollectionAndReturnPathToCollectedResults() string {
+	return c.amalgamatedCodeCoveragePath
 }

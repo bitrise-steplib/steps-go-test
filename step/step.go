@@ -73,7 +73,7 @@ func (s Step) Run(config *Config) (*Result, error) {
 
 	s.logger.Infof("\nRunning go test...")
 
-	codeCoveragePath, err := s.collector.PrepareAndReturnCoverageOutputPath(config.OutputDir)
+	codeCoveragePath, err := s.collector.PrepareAndReturnCurrentPackageCoverageOutputPath(config.OutputDir)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (s Step) Run(config *Config) (*Result, error) {
 	}
 
 	return &Result{
-		codeCoveragePath,
+		s.collector.FinishCollectionAndReturnPathToCollectedResults(),
 	}, nil
 }
 
