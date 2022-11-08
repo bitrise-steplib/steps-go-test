@@ -8,12 +8,12 @@ import (
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
-	"github.com/bitrise-steplib/steps-go-test/filesystem"
 )
 
 const CodeCoverageReportPathExportName = "GO_CODE_COVERAGE_REPORT_PATH"
 
 type Step struct {
+	collector   CodeCoverageCollector
 	env         env.Repository
 	inputParser stepconf.InputParser
 	logger      log.Logger
@@ -32,8 +32,14 @@ type envvars struct {
 	packages string `env:"packages"`
 }
 
-func CreateStep(env env.Repository, inputParser stepconf.InputParser, logger log.Logger, testRunner TestRunner) Step {
+func CreateStep(
+	collector CodeCoverageCollector,
+	env env.Repository,
+	inputParser stepconf.InputParser,
+	logger log.Logger,
+	testRunner TestRunner) Step {
 	return Step{
+		collector:   collector,
 		env:         env,
 		inputParser: inputParser,
 		logger:      logger,
@@ -64,12 +70,7 @@ func (s Step) Run(config *Config) (*Result, error) {
 
 	s.logger.Infof("\nRunning go test...")
 
-	packageCodeCoveragePth, err := filesystem.CreatePackageCodeCoverageFile()
-	if err != nil {
-		return nil, err
-	}
-
-	codeCoveragePth, err := filesystem.CodeCoveragePath()
+	codeCoveragePath, err := s.collector.PrepareAndReturnCoverageOutputPath()
 	if err != nil {
 		return nil, err
 	}
@@ -77,20 +78,20 @@ func (s Step) Run(config *Config) (*Result, error) {
 	for _, p := range config.Packages {
 		testConfig := TestConfig{
 			PackageName:        p,
-			CoverageReportPath: codeCoveragePth,
+			CoverageReportPath: codeCoveragePath,
 		}
 
 		if err := s.testRunner.RunTest(testConfig); err != nil {
 			return nil, err
 		}
 
-		if err := filesystem.AppendPackageCoverageAndRecreate(packageCodeCoveragePth, codeCoveragePth, s.logger); err != nil {
+		if err := s.collector.CollectCoverageResultsAndReset(); err != nil {
 			return nil, err
 		}
 	}
 
 	return &Result{
-		codeCoveragePth,
+		codeCoveragePath,
 	}, nil
 }
 
