@@ -1,7 +1,6 @@
 # github.com/bitrise-io/go-steputils/v2 v2.0.0-alpha.15
 ## explicit; go 1.17
-# github.com/bitrise-io/go-utils v1.0.1
-## explicit; go 1.13
+github.com/bitrise-io/go-steputils/v2/stepconf
 # github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.13
 ## explicit; go 1.17
 github.com/bitrise-io/go-utils/v2/command
@@ -9,7 +8,15 @@ github.com/bitrise-io/go-utils/v2/env
 github.com/bitrise-io/go-utils/v2/log
 github.com/bitrise-io/go-utils/v2/log/colorstring
 github.com/bitrise-io/go-utils/v2/pathutil
-# github.com/bitrise-tools/go-steputils v0.0.0-20180322152030-d4d9e08cc434
-## explicit
 # github.com/stretchr/testify v1.8.1
 ## explicit; go 1.13
+# golang.org/x/text v0.3.7
+## explicit; go 1.17
+golang.org/x/text/cases
+golang.org/x/text/internal
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+golang.org/x/text/language
+golang.org/x/text/transform
+golang.org/x/text/unicode/norm
