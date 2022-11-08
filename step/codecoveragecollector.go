@@ -6,7 +6,7 @@ import (
 )
 
 type CodeCoverageCollector interface {
-	PrepareAndReturnCoverageOutputPath() (string, error)
+	PrepareAndReturnCoverageOutputPath(string) (string, error)
 	CollectCoverageResultsAndReset() error
 }
 
@@ -20,13 +20,13 @@ type filesystembasedCollector struct {
 	codeCoverageOutputPath      string
 }
 
-func (c *filesystembasedCollector) PrepareAndReturnCoverageOutputPath() (string, error) {
+func (c *filesystembasedCollector) PrepareAndReturnCoverageOutputPath(outputDir string) (string, error) {
 	packageCodeCoveragePath, err := filesystem.CreatePackageCodeCoverageFile()
 	if err != nil {
 		return "", err
 	}
 
-	codeCoveragePath, err := filesystem.CodeCoveragePath()
+	codeCoveragePath, err := filesystem.CodeCoveragePath(outputDir)
 	if err != nil {
 		return "", err
 	}

@@ -21,7 +21,8 @@ type Step struct {
 }
 
 type Config struct {
-	Packages []string
+	OutputDir string
+	Packages  []string
 }
 
 type Result struct {
@@ -29,7 +30,8 @@ type Result struct {
 }
 
 type envvars struct {
-	packages string `env:"packages"`
+	codeCoverageOutputDir string `env:"BITRISE_DEPLOY_DIR"`
+	packages              string `env:"packages"`
 }
 
 func CreateStep(
@@ -54,7 +56,8 @@ func (s Step) ProcessConfig() (*Config, error) {
 	}
 
 	return &Config{
-		Packages: strings.Split(envvars.packages, "\n"),
+		OutputDir: envvars.codeCoverageOutputDir,
+		Packages:  strings.Split(envvars.packages, "\n"),
 	}, nil
 }
 
@@ -70,7 +73,7 @@ func (s Step) Run(config *Config) (*Result, error) {
 
 	s.logger.Infof("\nRunning go test...")
 
-	codeCoveragePath, err := s.collector.PrepareAndReturnCoverageOutputPath()
+	codeCoveragePath, err := s.collector.PrepareAndReturnCoverageOutputPath(config.OutputDir)
 	if err != nil {
 		return nil, err
 	}

@@ -22,8 +22,7 @@ func CreatePackageCodeCoverageFile() (string, error) {
 	return pth, nil
 }
 
-func CodeCoveragePath() (string, error) {
-	deployDir := os.Getenv("BITRISE_DEPLOY_DIR")
+func CodeCoveragePath(deployDir string) (string, error) {
 	if deployDir == "" {
 		return "", fmt.Errorf("BITRISE_DEPLOY_DIR env not set")
 	}

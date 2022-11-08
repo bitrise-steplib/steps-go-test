@@ -33,8 +33,6 @@ func TestCreatePackageCodeCoverageFile(t *testing.T) {
 }
 
 func TestCodeCoveragePath(t *testing.T) {
-	panicIfErr(os.Setenv("BITRISE_DEPLOY_DIR", "test_dir"))
-
 	tests := []struct {
 		name    string
 		wantErr bool
@@ -43,7 +41,7 @@ func TestCodeCoveragePath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := CodeCoveragePath()
+			got, err := CodeCoveragePath("test_dir")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CodeCoveragePath() error = %v, wantErr %v", err, tt.wantErr)
 				return
