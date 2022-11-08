@@ -30,8 +30,8 @@ type Result struct {
 }
 
 type envvars struct {
-	codeCoverageOutputDir string `env:"BITRISE_DEPLOY_DIR"`
-	packages              string `env:"packages"`
+	CodeCoverageOutputDir string `env:"BITRISE_DEPLOY_DIR"`
+	Packages              string `env:"packages"`
 }
 
 func CreateStep(
@@ -56,8 +56,8 @@ func (s Step) ProcessConfig() (*Config, error) {
 	}
 
 	return &Config{
-		OutputDir: envvars.codeCoverageOutputDir,
-		Packages:  strings.Split(envvars.packages, "\n"),
+		OutputDir: envvars.CodeCoverageOutputDir,
+		Packages:  strings.Split(envvars.Packages, "\n"),
 	}, nil
 }
 
