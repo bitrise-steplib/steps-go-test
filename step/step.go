@@ -3,9 +3,9 @@ package step
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
@@ -15,30 +15,38 @@ import (
 const CodeCoverageReportPathExportName = "GO_CODE_COVERAGE_REPORT_PATH"
 
 type Step struct {
-	env    env.Repository
-	logger log.Logger
+	env         env.Repository
+	inputParser stepconf.InputParser
+	logger      log.Logger
 }
 
 type Config struct {
+	Packages string `env:"packages"`
 }
 
 type Result struct {
 	codeCoveragePath string
 }
 
-func CreateStep(env env.Repository, logger log.Logger) Step {
+func CreateStep(env env.Repository, inputParser stepconf.InputParser, logger log.Logger) Step {
 	return Step{
-		env:    env,
-		logger: logger,
+		env:         env,
+		inputParser: inputParser,
+		logger:      logger,
 	}
 }
 
 func (s Step) ProcessConfig() (*Config, error) {
-	return &Config{}, nil
+	var config Config
+	if err := s.inputParser.Parse(&config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
 }
 
 func (s Step) Run(config *Config) (*Result, error) {
-	packages := os.Getenv("packages")
+	packages := config.Packages
 
 	s.logger.Infof("Configs:")
 	s.logger.Printf("- packages: %s", packages)
