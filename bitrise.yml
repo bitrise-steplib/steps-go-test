@@ -20,7 +20,7 @@ workflows:
     - path::./:
         title: Step Test
         inputs:
-        - packages: github.com/bitrise-steplib/steps-go-test
+        - packages: $BITRISE_GO_PACKAGES
     - script:
         title: Output test
         inputs:
