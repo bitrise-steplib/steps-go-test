@@ -27,13 +27,12 @@ const (
 )
 
 func run(logger log.Logger) (RunStatus, error) {
-	envRepository := env.NewRepository()
+	envRepository := stepenv.NewRepository(env.NewRepository())
 	inputParser := stepconf.NewInputParser(envRepository)
 	testRunner := step.CreateDefaultTestRunner(envRepository, logger)
 	collector := step.CreateDefaultCodeCoverageCollector(logger)
-	stepRepository := stepenv.NewRepository(envRepository)
 
-	step := step.CreateStep(collector, stepRepository, inputParser, logger, testRunner)
+	step := step.CreateStep(collector, envRepository, inputParser, logger, testRunner)
 	config, err := step.ProcessConfig()
 	if err != nil {
 		return Failure, err
