@@ -55,22 +55,26 @@ func (s Step) ProcessConfig() (*Config, error) {
 		return nil, err
 	}
 
-	return &Config{
-		OutputDir: envvars.CodeCoverageOutputDir,
-		Packages:  strings.Split(envvars.Packages, "\n"),
-	}, nil
-}
+	if envvars.CodeCoverageOutputDir == "" {
+		return nil, fmt.Errorf("BITRISE_DEPLOY_DIR env not set")
+	}
 
-func (s Step) Run(config *Config) (*Result, error) {
-	packages := config.Packages
+	if len(envvars.Packages) == 0 {
+		return nil, errors.New("Required input not defined: packages")
+	}
+
+	packages := strings.Split(envvars.Packages, "\n")
 
 	s.logger.Infof("Configs:")
 	s.logger.Printf("- packages: %s", packages)
 
-	if len(packages) == 0 {
-		return nil, errors.New("Required input not defined: packages")
-	}
+	return &Config{
+		OutputDir: envvars.CodeCoverageOutputDir,
+		Packages:  packages,
+	}, nil
+}
 
+func (s Step) Run(config *Config) (*Result, error) {
 	s.logger.Infof("\nRunning go test...")
 
 	codeCoveragePath, err := s.collector.PrepareAndReturnCurrentPackageCoverageOutputPath(config.OutputDir)

@@ -46,7 +46,7 @@ func TestStep_Run(t *testing.T) {
 			wasTestRun: true,
 		},
 		{
-			name: "When packages are empty expect error with no tests run",
+			name: "When packages are empty expect success with no tests run",
 			fields: fields{
 				collector:   testCollector{"out", "collected_file_path"},
 				env:         testEnv{},
@@ -58,12 +58,12 @@ func TestStep_Run(t *testing.T) {
 				OutputDir: "test_outputdir",
 				Packages:  []string{},
 			}},
-			want:       nil,
-			wantErr:    true,
+			want:       &Result{"collected_file_path"},
+			wantErr:    false,
 			wasTestRun: false,
 		},
 		{
-			name: "When packages are nil expect error with not tests run",
+			name: "When packages are nil expect error with no tests run",
 			fields: fields{
 				collector:   testCollector{"out", "collected_file_path"},
 				env:         testEnv{},
@@ -75,8 +75,8 @@ func TestStep_Run(t *testing.T) {
 				OutputDir: "test_outputdir",
 				Packages:  nil,
 			}},
-			want:       nil,
-			wantErr:    true,
+			want:       &Result{"collected_file_path"},
+			wantErr:    false,
 			wasTestRun: false,
 		},
 	}
