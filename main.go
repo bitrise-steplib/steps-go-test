@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
+	"github.com/bitrise-io/go-steputils/v2/stepenv"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-steplib/steps-go-test/step"
@@ -30,8 +31,9 @@ func run(logger log.Logger) (RunStatus, error) {
 	inputParser := stepconf.NewInputParser(envRepository)
 	testRunner := step.CreateDefaultTestRunner(envRepository, logger)
 	collector := step.CreateDefaultCodeCoverageCollector(logger)
+	stepRepository := stepenv.NewRepository(envRepository)
 
-	step := step.CreateStep(collector, envRepository, inputParser, logger, testRunner)
+	step := step.CreateStep(collector, stepRepository, inputParser, logger, testRunner)
 	config, err := step.ProcessConfig()
 	if err != nil {
 		return Failure, err
