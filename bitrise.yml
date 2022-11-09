@@ -12,9 +12,6 @@ workflows:
     - audit-this-step
     steps:
     - go-list: { }
-    - git::https://github.com/bitrise-steplib/steps-check.git: { }
-    - errcheck: { }
-    - go-test: { }
     - change-workdir:
         title: Switch working dir to ./_tmp dir
         inputs:
