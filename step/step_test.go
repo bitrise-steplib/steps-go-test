@@ -110,6 +110,75 @@ func TestStep_Run(t *testing.T) {
 	}
 }
 
+func TestStep_ProcessConfig(t *testing.T) {
+	collector := testCollector{}
+	logger := log.NewLogger()
+	testRunner := fakeTestRunner{}
+
+	tests := []struct {
+		name    string
+		env     env.Repository
+		want    *Config
+		wantErr bool
+	}{
+		{
+			"Empty env vars",
+			testEnv{},
+			nil,
+			true,
+		},
+		{
+			"Only deploy dir env var set",
+			testEnv{map[string]string{"BITRISE_DEPLOY_DIR": "dir"}},
+			nil,
+			true,
+		},
+		{
+			"Only packages env var set",
+			testEnv{map[string]string{"packages": "pkg"}},
+			nil,
+			true,
+		},
+		{
+			"Valid config available",
+			testEnv{map[string]string{"BITRISE_DEPLOY_DIR": "dir", "packages": "pkg"}},
+			&Config{
+				OutputDir: "dir",
+				Packages:  []string{"pkg"},
+			},
+			false,
+		},
+		{
+			"Valid config available with multiple packages",
+			testEnv{map[string]string{"BITRISE_DEPLOY_DIR": "dir", "packages": "pkg\npkg2"}},
+			&Config{
+				OutputDir: "dir",
+				Packages:  []string{"pkg", "pkg2"},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := Step{
+				collector:   collector,
+				env:         tt.env,
+				inputParser: stepconf.NewInputParser(tt.env),
+				logger:      logger,
+				testRunner:  &testRunner,
+			}
+			got, err := s.ProcessConfig()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Step.ProcessConfig() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Step.ProcessConfig() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 // Test Collector
 
 type testCollector struct {
@@ -131,7 +200,9 @@ func (c testCollector) FinishCollectionAndReturnPathToCollectedResults() string 
 
 // Test Environment
 
-type testEnv struct{}
+type testEnv struct {
+	val map[string]string
+}
 
 func (e testEnv) List() []string {
 	panic("not implemented") // TODO: Implement
@@ -142,7 +213,8 @@ func (e testEnv) Unset(key string) error {
 }
 
 func (e testEnv) Get(key string) string {
-	panic("not implemented") // TODO: Implement
+	v, _ := e.val[key]
+	return v
 }
 
 func (e testEnv) Set(key string, value string) error {
