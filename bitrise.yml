@@ -33,6 +33,17 @@ workflows:
             fi
 
   # ----------------------------------------------------------------
+  # --- Development workflows - verify work, identify linter issues
+  errcheck:
+    steps:
+    - go-list: { }
+    - errcheck: { }
+
+  check-step:
+    steps:
+    - git::https://github.com/bitrise-steplib/steps-check.git: { }
+
+  # ----------------------------------------------------------------
   # --- Utility workflows
   dep-update:
     title: Dep update
