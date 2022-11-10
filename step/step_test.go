@@ -213,7 +213,7 @@ func (e testEnv) Unset(key string) error {
 }
 
 func (e testEnv) Get(key string) string {
-	v, _ := e.val[key]
+	v := e.val[key]
 	return v
 }
 
