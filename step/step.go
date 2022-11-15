@@ -75,7 +75,8 @@ func (s Step) ProcessConfig() (*Config, error) {
 }
 
 func (s Step) Run(config *Config) (*Result, error) {
-	s.logger.Infof("\nRunning go test...")
+	s.logger.Println()
+	s.logger.Infof("Running go test...")
 
 	codeCoveragePath, err := s.collector.PrepareAndReturnCurrentPackageCoverageOutputPath(config.OutputDir)
 	if err != nil {
