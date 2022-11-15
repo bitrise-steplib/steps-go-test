@@ -1,20 +1,17 @@
-format_version: 5
+format_version: "5"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
   # If you want to share this step into a StepLib
-  - BITRISE_STEP_VERSION: "1.0.2"
+  - BITRISE_STEP_VERSION: 1.0.2
 
 workflows:
   test:
     before_run:
     - audit-this-step
     steps:
-    - go-list:
-    - golint:
-    - errcheck:
-    - go-test:
+    - go-list: { }
     - change-workdir:
         title: Switch working dir to ./_tmp dir
         inputs:
@@ -23,7 +20,7 @@ workflows:
     - path::./:
         title: Step Test
         inputs:
-        - packages: github.com/bitrise-steplib/steps-go-test
+        - packages: $BITRISE_GO_PACKAGES
     - script:
         title: Output test
         inputs:
@@ -34,6 +31,17 @@ workflows:
               echo "The file at GO_CODE_COVERAGE_REPORT_PATH does not exist"
               exit 1
             fi
+
+  # ----------------------------------------------------------------
+  # --- Development workflows - verify work, identify linter issues
+  errcheck:
+    steps:
+    - go-list: { }
+    - errcheck: { }
+
+  check-step:
+    steps:
+    - git::https://github.com/bitrise-steplib/steps-check.git: { }
 
   # ----------------------------------------------------------------
   # --- Utility workflows
@@ -66,11 +74,11 @@ workflows:
 
   share-this-step:
     envs:
-      # if you want to share this step into a StepLib
-      - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
-      - BITRISE_STEP_VERSION: $BITRISE_STEP_VERSION
-      - BITRISE_STEP_ID: go-test
-      - BITRISE_STEP_GIT_CLONE_URL: https://github.com/bitrise-steplib/steps-go-test.git
+    # if you want to share this step into a StepLib
+    - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
+    - BITRISE_STEP_VERSION: $BITRISE_STEP_VERSION
+    - BITRISE_STEP_ID: go-test
+    - BITRISE_STEP_GIT_CLONE_URL: https://github.com/bitrise-steplib/steps-go-test.git
     description: |-
       If this is the first time you try to share a Step you should
       first call: $ bitrise share
