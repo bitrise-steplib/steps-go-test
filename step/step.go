@@ -29,7 +29,7 @@ type Result struct {
 	codeCoveragePath string
 }
 
-type envvars struct {
+type inputs struct {
 	CodeCoverageOutputDir string `env:"BITRISE_DEPLOY_DIR"`
 	Packages              string `env:"packages"`
 }
@@ -50,7 +50,7 @@ func CreateStep(
 }
 
 func (s Step) ProcessConfig() (*Config, error) {
-	var envvars envvars
+	var envvars inputs
 	if err := s.inputParser.Parse(&envvars); err != nil {
 		return nil, err
 	}
