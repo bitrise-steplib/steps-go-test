@@ -87,8 +87,8 @@ func main() {
 
 		log.Printf("$ %s", cmd.PrintableCommandArgs())
 
-		if err := cmd.Run(); err != nil {
-			failf("go test failed: %s", err)
+		if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+			failf("go test failed: %s\n%s", err, out)
 		}
 
 		if err := appendPackageCoverageAndRecreate(packageCodeCoveragePth, codeCoveragePth); err != nil {
