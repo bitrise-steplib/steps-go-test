@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GoLinterSettings">
+    <option name="customConfigFile" value="$PROJECT_DIR$/../golangci.yml" />
+    <option name="enabledLinters">
+      <list>
+        <option value="staticcheck" />
+        <option value="govet" />
+        <option value="errorlint" />
+        <option value="gomnd" />
+        <option value="misspell" />
+        <option value="gocritic" />
+        <option value="goconst" />
+        <option value="errcheck" />
+        <option value="wastedassign" />
+        <option value="gci" />
+        <option value="nestif" />
+        <option value="ineffassign" />
+        <option value="deadcode" />
+        <option value="bodyclose" />
+        <option value="varcheck" />
+        <option value="gosec" />
+        <option value="structcheck" />
+        <option value="unused" />
+        <option value="nilerr" />
+        <option value="revive" />
+        <option value="stylecheck" />
+        <option value="ifshort" />
+        <option value="godot" />
+        <option value="gosimple" />
+      </list>
+    </option>
+    <option name="goLinterExe" value="$USER_HOME$/go/bin/golangci-lint" />
+    <option name="linterSelected" value="true" />
+  </component>
+</project>
