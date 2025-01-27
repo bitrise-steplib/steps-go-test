@@ -10,8 +10,8 @@ source_code_url: https://github.com/bitrise-steplib/steps-go-test
 support_url: https://github.com/bitrise-steplib/steps-go-test/issues
 
 type_tags:
-  - test
-  
+- test
+
 is_requires_admin_user: true
 is_always_run: false
 is_skippable: false
@@ -35,6 +35,7 @@ inputs:
       github.com/my/step
       github.com/bitrise/step/tool
       ```
+
 outputs:
 - GO_CODE_COVERAGE_REPORT_PATH:
   opts:
