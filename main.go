@@ -90,6 +90,7 @@ func appendPackageCoverageAndRecreate(fileManager fileutil.FileManager, packageC
 }
 
 func main() {
+	// deps
 	envRepo := env.NewRepository()
 	cmdFactory := command.NewFactory(envRepo)
 	exporter := export.NewExporter(cmdFactory)
@@ -97,6 +98,7 @@ func main() {
 	pathProvider := pathutil.NewPathProvider()
 	fileManager := fileutil.NewFileManager()
 
+	// process inputs
 	packages := envRepo.Get("packages")
 
 	logger.Infof("Configs:")
@@ -106,6 +108,7 @@ func main() {
 		failf(logger, "Required input not defined: packages")
 	}
 
+	// run
 	logger.Infof("\nRunning go test...")
 
 	packageCodeCoveragePth, err := createPackageCodeCoverageFile(pathProvider)
@@ -133,6 +136,7 @@ func main() {
 		}
 	}
 
+	// export outputs
 	if err := exporter.ExportOutput("GO_CODE_COVERAGE_REPORT_PATH", codeCoveragePth); err != nil {
 		failf(logger, "Failed to export GO_CODE_COVERAGE_REPORT_PATH=%s", codeCoveragePth)
 	}
