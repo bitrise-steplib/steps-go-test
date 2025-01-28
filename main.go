@@ -29,7 +29,7 @@ func run() int {
 		return 1
 	}
 
-	runOpts := step.RunOpts(config.Packages)
+	runOpts := step.RunOpts(config)
 	runResult, err := goTestRunner.Run(runOpts)
 	if err != nil {
 		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step: %w", err)))
