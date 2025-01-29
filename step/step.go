@@ -1,6 +1,7 @@
 package step
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -17,11 +18,13 @@ import (
 )
 
 type Inputs struct {
-	Packages string `env:"packages,required"`
+	Packages  string `env:"packages,required"`
+	OutputDir string `env:"output_dir,required"`
 }
 
 type Config struct {
-	Packages []string
+	Packages  []string
+	OutputDir string
 }
 
 type GoTestRunner struct {
@@ -73,12 +76,14 @@ func (s GoTestRunner) ProcessInputs() (Config, error) {
 	}
 
 	return Config{
-		Packages: packages,
+		Packages:  packages,
+		OutputDir: inputs.OutputDir,
 	}, nil
 }
 
 type RunOpts struct {
-	Packages []string
+	Packages  []string
+	OutputDir string
 }
 
 type RunResult struct {
@@ -91,7 +96,7 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 		return nil, fmt.Errorf("failed to create package code coverage file: %w", err)
 	}
 
-	codeCoveragePth, err := s.codeCoveragePath()
+	codeCoveragePth, err := s.codeCoveragePath(opts.OutputDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get code coverage path: %w", err)
 	}
@@ -122,7 +127,7 @@ type ExportOpts struct {
 
 func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
 	if err := s.outputExporter.ExportOutput("GO_CODE_COVERAGE_REPORT_PATH", opts.CodeCoveragePth); err != nil {
-		return fmt.Errorf("failed to export GO_CODE_COVERAGE_REPORT_PATH=%s", opts.CodeCoveragePth)
+		return fmt.Errorf("failed to export GO_CODE_COVERAGE_REPORT_PATH=%s: %w", opts.CodeCoveragePth, err)
 	}
 
 	s.logger.Donef("\ncode coverage is available at: GO_CODE_COVERAGE_REPORT_PATH=%s", opts.CodeCoveragePth)
@@ -144,19 +149,13 @@ func (s GoTestRunner) createPackageCodeCoverageFile() (string, error) {
 	return pth, nil
 }
 
-func (s GoTestRunner) codeCoveragePath() (string, error) {
-	// TODO: deploy dir should be an input
-	deployDir := s.envRepo.Get("BITRISE_DEPLOY_DIR")
-	if deployDir == "" {
-		return "", fmt.Errorf("BITRISE_DEPLOY_DIR env not set")
-	}
-
+func (s GoTestRunner) codeCoveragePath(outputDir string) (string, error) {
 	// TODO: don't call os.MkdirAll directly
-	if err := os.MkdirAll(deployDir, 0777); err != nil {
+	if err := os.MkdirAll(outputDir, 0777); err != nil {
 		return "", fmt.Errorf("failed to create BITRISE_DEPLOY_DIR: %w", err)
 	}
 
-	return filepath.Join(deployDir, "go_code_coverage.txt"), nil
+	return filepath.Join(outputDir, "go_code_coverage.txt"), nil
 }
 
 func (s GoTestRunner) appendPackageCoverageAndRecreate(packageCoveragePth, coveragePth string) error {
@@ -171,19 +170,23 @@ func (s GoTestRunner) appendPackageCoverageAndRecreate(packageCoveragePth, cover
 	}
 
 	// Append package coverage report to the main coverage report file
+	var coverageFileContent []byte
 	coverageFile, err := s.fileManager.Open(coveragePth)
 	if err != nil {
-		return fmt.Errorf("failed to open package code coverage report file: %w", err)
-	}
-	coverageFileContent, err := io.ReadAll(coverageFile)
-	if err != nil {
-		return fmt.Errorf("failed to read package code coverage report file: %w", err)
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("failed to open code coverage report file: %w", err)
+		}
+	} else {
+		coverageFileContent, err = io.ReadAll(coverageFile)
+		if err != nil {
+			return fmt.Errorf("failed to read code coverage report file: %w", err)
+		}
 	}
 
 	coverageFileContent = append(coverageFileContent, packageCoverageFileContent...)
 
 	if err := s.fileManager.Write(coveragePth, string(coverageFileContent), 0777); err != nil {
-		return fmt.Errorf("failed to write package code coverage report file: %w", err)
+		return fmt.Errorf("failed to write code coverage report file: %w", err)
 	}
 
 	// Recreate package coverage report file

@@ -35,6 +35,13 @@ inputs:
       github.com/my/step
       github.com/bitrise/step/tool
       ```
+    is_required: true
+
+- output_dir: $BITRISE_DEPLOY_DIR
+  opts:
+    title: Output directory path
+    summary: This directory will contain the generated artifacts.
+    is_required: true
 
 outputs:
 - GO_CODE_COVERAGE_REPORT_PATH:
