@@ -8,11 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bitrise-io/go-steputils/v2/export"
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
-	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
 )
@@ -32,9 +30,9 @@ type GoTestRunner struct {
 	inputParser    stepconf.InputParser
 	envRepo        env.Repository
 	cmdFactory     command.Factory
-	outputExporter export.Exporter
+	outputExporter OutputExporter
 	pathProvider   pathutil.PathProvider
-	fileManager    fileutil.FileManager
+	fileManager    FileManager
 }
 
 func NewGoTestRunner(
@@ -42,9 +40,9 @@ func NewGoTestRunner(
 	inputParser stepconf.InputParser,
 	envRepo env.Repository,
 	cmdFactory command.Factory,
-	outputExporter export.Exporter,
+	outputExporter OutputExporter,
 	pathProvider pathutil.PathProvider,
-	fileManager fileutil.FileManager,
+	fileManager FileManager,
 ) GoTestRunner {
 	return GoTestRunner{
 		logger:         logger,
@@ -141,8 +139,7 @@ func (s GoTestRunner) createPackageCodeCoverageFile() (string, error) {
 	}
 	pth := filepath.Join(tmpDir, "profile.out")
 
-	// TODO: don't call os.Create directly
-	if _, err := os.Create(pth); err != nil {
+	if _, err := s.fileManager.Create(pth); err != nil {
 		return "", err
 	}
 
@@ -150,8 +147,7 @@ func (s GoTestRunner) createPackageCodeCoverageFile() (string, error) {
 }
 
 func (s GoTestRunner) codeCoveragePath(outputDir string) (string, error) {
-	// TODO: don't call os.MkdirAll directly
-	if err := os.MkdirAll(outputDir, 0777); err != nil {
+	if err := s.fileManager.MkdirAll(outputDir, 0777); err != nil {
 		return "", fmt.Errorf("failed to create BITRISE_DEPLOY_DIR: %w", err)
 	}
 
@@ -194,8 +190,7 @@ func (s GoTestRunner) appendPackageCoverageAndRecreate(packageCoveragePth, cover
 		return fmt.Errorf("failed to remove package code coverage report file: %w", err)
 	}
 
-	// TODO: don't call os.Create directly
-	if _, err := os.Create(packageCoveragePth); err != nil {
+	if _, err := s.fileManager.Create(packageCoveragePth); err != nil {
 		return fmt.Errorf("failed to create package code coverage report file: %w", err)
 	}
 
