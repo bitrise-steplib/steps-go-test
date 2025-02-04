@@ -9,6 +9,7 @@ import (
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/errorutil"
+	"github.com/bitrise-io/go-utils/v2/exitcode"
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
@@ -16,33 +17,33 @@ import (
 )
 
 func main() {
-	os.Exit(run())
+	os.Exit(int(run()))
 }
 
-func run() int {
+func run() exitcode.ExitCode {
 	logger := log.NewLogger()
 
 	goTestRunner := createGoTestRunner(logger)
 	config, err := goTestRunner.ProcessInputs()
 	if err != nil {
 		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
-		return 1
+		return exitcode.Failure
 	}
 
 	runOpts := step.RunOpts(config)
 	runResult, err := goTestRunner.Run(runOpts)
 	if err != nil {
 		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step: %w", err)))
-		return 1
+		return exitcode.Failure
 	}
 
 	exportOpts := step.ExportOpts{CodeCoveragePth: runResult.CodeCoveragePth}
 	if err := goTestRunner.ExportOutput(exportOpts); err != nil {
 		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", err)))
-		return 1
+		return exitcode.Failure
 	}
 
-	return 0
+	return exitcode.Success
 }
 
 func createGoTestRunner(logger log.Logger) step.GoTestRunner {
