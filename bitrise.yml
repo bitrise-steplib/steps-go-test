@@ -13,15 +13,10 @@ workflows:
 
   e2e:
     steps:
-    - change-workdir:
-        title: Switch working dir to ./_tmp dir
-        inputs:
-        - path: ./_tmp
-        - is_create_path: true
     - path::./:
         title: Step Test
         inputs:
-        - packages: github.com/bitrise-steplib/steps-go-test
+        - packages: ./...
     - script:
         title: Output test
         inputs:
