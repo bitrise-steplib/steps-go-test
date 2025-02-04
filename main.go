@@ -51,7 +51,7 @@ func createGoTestRunner(logger log.Logger) step.GoTestRunner {
 	cmdFactory := command.NewFactory(envRepo)
 	exporter := export.NewExporter(cmdFactory)
 	pathProvider := pathutil.NewPathProvider()
-	fileManager := fileutil.NewFileManager()
+	fileManager := step.NewFileManager(fileutil.NewFileManager())
 
-	return step.NewGoTestRunner(logger, inputParser, envRepo, cmdFactory, exporter, pathProvider, fileManager)
+	return step.NewGoTestRunner(logger, inputParser, envRepo, cmdFactory, &exporter, pathProvider, fileManager)
 }

@@ -27,8 +27,8 @@ type fileManager struct {
 	fileManager fileutil.FileManager
 }
 
-func newFileManager() FileManager {
-	return fileManager{fileManager: fileutil.NewFileManager()}
+func NewFileManager(manager fileutil.FileManager) FileManager {
+	return fileManager{fileManager: manager}
 }
 
 func (f fileManager) Create(name string) (*os.File, error) {
