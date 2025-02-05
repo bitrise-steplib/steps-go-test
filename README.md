@@ -25,7 +25,8 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 
 | Key | Description | Flags | Default |
 | --- | --- | --- | --- |
-| `packages` | Newline separated list of Go packages, to run the Go test command against.  __Example:__  ``` github.com/my/step github.com/bitrise/step/tool ``` |  | `$BITRISE_GO_PACKAGES` |
+| `packages` | Newline separated list of Go packages, to run the Go test command against.  __Example:__  ``` github.com/my/step github.com/bitrise/step/tool ``` | required | `$BITRISE_GO_PACKAGES` |
+| `output_dir` | This directory will contain the generated artifacts. | required | `$BITRISE_DEPLOY_DIR` |
 </details>
 
 <details>
