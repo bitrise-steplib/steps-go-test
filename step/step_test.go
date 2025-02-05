@@ -28,10 +28,10 @@ func TestGoTestRunner_Run_WhenTestSucceedItWritesCodeCoverageToFile(t *testing.T
 	}
 
 	// Create mocks
-	mockCmdFactory := new(mocks.Factory)
-	mockCmd := new(mocks.Command)
-	mockFileManager := new(mocks.FileManager)
-	mockPathProvider := new(mocks.PathProvider)
+	mockCmdFactory := mocks.NewFactory(t)
+	mockCmd := mocks.NewCommand(t)
+	mockFileManager := mocks.NewFileManager(t)
+	mockPathProvider := mocks.NewPathProvider(t)
 
 	// It runs go test command with code coverage enabled
 	tmpDir := "tmp_dir"
@@ -63,10 +63,6 @@ func TestGoTestRunner_Run_WhenTestSucceedItWritesCodeCoverageToFile(t *testing.T
 	runResult, err := s.Run(opts)
 	require.NoError(t, err)
 	require.Equal(t, wantRunResult, runResult)
-	mockCmdFactory.AssertExpectations(t)
-	mockCmd.AssertExpectations(t)
-	mockFileManager.AssertExpectations(t)
-	mockPathProvider.AssertExpectations(t)
 }
 
 func TestGoTestRunner_Run_WhenTestFailsItReturnsAnError(t *testing.T) {
@@ -79,10 +75,10 @@ func TestGoTestRunner_Run_WhenTestFailsItReturnsAnError(t *testing.T) {
 	}
 
 	// Create mocks
-	mockCmdFactory := new(mocks.Factory)
-	mockCmd := new(mocks.Command)
-	mockFileManager := new(mocks.FileManager)
-	mockPathProvider := new(mocks.PathProvider)
+	mockCmdFactory := mocks.NewFactory(t)
+	mockCmd := mocks.NewCommand(t)
+	mockFileManager := mocks.NewFileManager(t)
+	mockPathProvider := mocks.NewPathProvider(t)
 
 	// It runs go test command with code coverage enabled
 	tmpDir := "tmp_dir"
@@ -108,8 +104,4 @@ func TestGoTestRunner_Run_WhenTestFailsItReturnsAnError(t *testing.T) {
 	gotResult, err := s.Run(opts)
 	require.EqualError(t, err, "go test failed: exit status 1")
 	require.Nil(t, gotResult)
-	mockCmdFactory.AssertExpectations(t)
-	mockCmd.AssertExpectations(t)
-	mockFileManager.AssertExpectations(t)
-	mockPathProvider.AssertExpectations(t)
 }
