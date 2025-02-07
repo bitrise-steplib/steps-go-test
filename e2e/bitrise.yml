@@ -1,0 +1,16 @@
+format_version: "18"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+workflows:
+  test_go_test:
+    steps:
+    - path::./:
+        title: Step Test
+        inputs:
+        - packages: ./...
+    - git::https://github.com/bitrise-steplib/bitrise-step-check-step-outputs.git@main:
+        is_always_run: true
+        inputs:
+        - deploy_dir: $BITRISE_DEPLOY_DIR
+        - deployed_files: |-
+            GO_CODE_COVERAGE_REPORT_PATH

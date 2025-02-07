@@ -2,31 +2,21 @@ format_version: "18"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 workflows:
-  test:
-    before_run:
-    - check
-    - e2e
-
   check:
     steps:
     - git::https://github.com/bitrise-steplib/steps-check.git: { }
 
   e2e:
     steps:
+    - git::https://github.com/bitrise-steplib/steps-check.git:
+        inputs:
+        - workflow: e2e
+
+  sample:
+    steps:
     - path::./:
-        title: Step Test
         inputs:
         - packages: ./...
-    - script:
-        title: Output test
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            echo "code coverage report: ${GO_CODE_COVERAGE_REPORT_PATH}"
-            if [ ! -f "${GO_CODE_COVERAGE_REPORT_PATH}" ]; then
-              echo "The file at GO_CODE_COVERAGE_REPORT_PATH does not exist"
-              exit 1
-            fi
 
   generate_readme:
     steps:
