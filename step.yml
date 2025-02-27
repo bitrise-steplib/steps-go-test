@@ -43,6 +43,11 @@ inputs:
     summary: This directory will contain the generated artifacts.
     is_required: true
 
+- test_report_name:
+  opts:
+    title: Name of the test report
+    summary: Name of the test report to be used in Bitrise Test Reports
+
 outputs:
 - GO_CODE_COVERAGE_REPORT_PATH:
   opts:

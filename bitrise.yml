@@ -17,6 +17,7 @@ workflows:
     - path::./:
         inputs:
         - packages: ./...
+        - test_report_name: All tests
 
   generate_readme:
     steps:

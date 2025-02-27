@@ -32,14 +32,14 @@ func run() exitcode.ExitCode {
 		return exitcode.Failure
 	}
 
-	runOpts := step.RunOpts(config)
+	runOpts := step.RunOpts{Packages: config.Packages, OutputDir: config.OutputDir}
 	runResult, err := goTestRunner.Run(runOpts)
 	if err != nil {
 		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step: %w", err)))
 		return exitcode.Failure
 	}
 
-	exportOpts := step.ExportOpts{CodeCoveragePth: runResult.CodeCoveragePth, TestRunLogFilePaths: runResult.TestRunLogFilePaths}
+	exportOpts := step.ExportOpts{CodeCoveragePth: runResult.CodeCoveragePth, TestRunLogFilePaths: runResult.TestRunLogFilePaths, PackagesToTestReportNames: config.PackagesToTestReportNames}
 	if err := goTestRunner.ExportOutput(exportOpts); err != nil {
 		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", err)))
 		return exitcode.Failure

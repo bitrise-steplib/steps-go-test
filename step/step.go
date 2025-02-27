@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
@@ -20,13 +21,15 @@ import (
 )
 
 type Inputs struct {
-	Packages  string `env:"packages,required"`
-	OutputDir string `env:"output_dir,required"`
+	Packages       string `env:"packages,required"`
+	OutputDir      string `env:"output_dir,required"`
+	TestReportName string `env:"test_report_name"`
 }
 
 type Config struct {
-	Packages  []string
-	OutputDir string
+	Packages                  []string
+	OutputDir                 string
+	PackagesToTestReportNames map[string]string
 }
 
 type GoTestRunner struct {
@@ -62,27 +65,25 @@ func NewGoTestRunner(
 	}
 }
 
-func (s GoTestRunner) ProcessInputs() (Config, error) {
+func (s GoTestRunner) ProcessInputs() (*Config, error) {
 	var inputs Inputs
 	if err := s.inputParser.Parse(&inputs); err != nil {
-		return Config{}, fmt.Errorf("issue with input: %w", err)
+		return nil, fmt.Errorf("issue with input: %w", err)
 	}
 
 	stepconf.Print(inputs)
 	s.logger.Println()
 
-	var packages []string
-	packagesSplit := strings.Split(inputs.Packages, "\n")
-	for _, p := range packagesSplit {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			packages = append(packages, p)
-		}
+	packages := s.parsePackages(inputs.Packages)
+	packagesToTestReportNames, err := s.parseTestReportNameMapping(inputs.TestReportName, packages)
+	if err != nil {
+		return nil, err
 	}
 
-	return Config{
-		Packages:  packages,
-		OutputDir: inputs.OutputDir,
+	return &Config{
+		Packages:                  packages,
+		OutputDir:                 inputs.OutputDir,
+		PackagesToTestReportNames: packagesToTestReportNames,
 	}, nil
 }
 
@@ -146,8 +147,9 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 }
 
 type ExportOpts struct {
-	CodeCoveragePth     string
-	TestRunLogFilePaths map[string]string
+	CodeCoveragePth           string
+	TestRunLogFilePaths       map[string]string
+	PackagesToTestReportNames map[string]string
 }
 
 func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
@@ -171,7 +173,12 @@ func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
 			return fmt.Errorf("failed to parse go test report: %w", parseErr)
 		}
 
-		reportFile, err := s.testaddonExporter.PrepareTestResultExport(pkg)
+		reportName, ok := opts.PackagesToTestReportNames[pkg]
+		if !ok {
+			reportName = pkg
+		}
+
+		reportFile, err := s.testaddonExporter.PrepareTestResultExport(reportName)
 		if err != nil {
 			return fmt.Errorf("failed to prepare test result export: %w", err)
 		}
@@ -185,6 +192,74 @@ func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
 	}
 
 	return nil
+}
+
+func (s GoTestRunner) parsePackages(packages string) []string {
+	var pkgs []string
+	split := strings.Split(packages, "\n")
+	for _, pkg := range split {
+		pkg = strings.TrimSpace(pkg)
+		if pkg == "" {
+			continue
+		}
+
+		if slices.Contains(pkgs, pkg) {
+			s.logger.Warnf("Skipping duplicate package: %s", pkg)
+			continue
+		}
+
+		pkgs = append(pkgs, pkg)
+	}
+	return pkgs
+}
+
+func (s GoTestRunner) parseTestReportNameMapping(testReportName string, packages []string) (map[string]string, error) {
+	testReportName = strings.TrimSpace(testReportName)
+
+	packagesToTestReportName := map[string]string{}
+	testReportNameSplit := strings.Split(testReportName, "\n")
+	for _, line := range testReportNameSplit {
+		pkg, reportName := s.parseTestReportNameMappingLine(line)
+		if pkg == "" {
+			if len(testReportNameSplit) > 1 {
+				return nil, fmt.Errorf("invalid test report name mapping format: multiple mapping defined, but package name is missing from: %s", line)
+			}
+			if len(packages) > 1 {
+				return nil, errors.New("invalid test report name mapping format: single report name can't be assigned to multiple packages")
+			}
+			return map[string]string{packages[0]: reportName}, nil
+		}
+
+		if !slices.Contains(packages, pkg) {
+			return nil, fmt.Errorf("invalid test report name mapping format: package not found in packages: %s", pkg)
+		}
+
+		if _, ok := packagesToTestReportName[pkg]; ok {
+			return nil, fmt.Errorf("invalid test report name mapping format: duplicate package name: %s", pkg)
+		}
+
+		packagesToTestReportName[pkg] = reportName
+	}
+
+	return packagesToTestReportName, nil
+}
+
+func (s GoTestRunner) parseTestReportNameMappingLine(line string) (string, string) {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return "", ""
+	}
+
+	split := strings.Split(line, ":")
+	if len(split) == 0 {
+		return "", ""
+	}
+
+	if len(split) == 1 {
+		return "", strings.TrimSpace(split[0])
+	} else {
+		return strings.TrimSpace(split[0]), strings.TrimSpace(strings.Join(split[1:], ":"))
+	}
 }
 
 func (s GoTestRunner) testRunLogTmpFile() (*os.File, error) {
