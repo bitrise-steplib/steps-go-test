@@ -32,7 +32,7 @@ func run() exitcode.ExitCode {
 		return exitcode.Failure
 	}
 
-	runOpts := step.RunOpts{Packages: config.Packages, OutputDir: config.OutputDir}
+	runOpts := step.RunOpts{Packages: config.Packages, TestOptions: config.TestOptions, OutputDir: config.OutputDir}
 	runResult, err := goTestRunner.Run(runOpts)
 	if err != nil {
 		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step: %w", err)))

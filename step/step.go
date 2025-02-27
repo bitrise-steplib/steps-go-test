@@ -18,18 +18,21 @@ import (
 	"github.com/bitrise-steplib/steps-go-test/testaddon"
 	"github.com/jstemmer/go-junit-report/v2/junit"
 	"github.com/jstemmer/go-junit-report/v2/parser/gotest"
+	shellquote "github.com/kballard/go-shellquote"
 )
 
 type Inputs struct {
 	Packages       string `env:"packages,required"`
-	OutputDir      string `env:"output_dir,required"`
+	TestOptions    string `env:"test_options"`
 	TestReportName string `env:"test_report_name"`
+	OutputDir      string `env:"output_dir,required"`
 }
 
 type Config struct {
 	Packages                  []string
-	OutputDir                 string
+	TestOptions               []string
 	PackagesToTestReportNames map[string]string
+	OutputDir                 string
 }
 
 type GoTestRunner struct {
@@ -80,16 +83,23 @@ func (s GoTestRunner) ProcessInputs() (*Config, error) {
 		return nil, err
 	}
 
+	testOptions, err := shellquote.Split(inputs.TestOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse test options: %w", err)
+	}
+
 	return &Config{
 		Packages:                  packages,
-		OutputDir:                 inputs.OutputDir,
+		TestOptions:               testOptions,
 		PackagesToTestReportNames: packagesToTestReportNames,
+		OutputDir:                 inputs.OutputDir,
 	}, nil
 }
 
 type RunOpts struct {
-	Packages  []string
-	OutputDir string
+	Packages    []string
+	TestOptions []string
+	OutputDir   string
 }
 
 type RunResult struct {
@@ -119,7 +129,12 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 		outWriter := io.MultiWriter(os.Stdout, logFile)
 		errWriter := io.MultiWriter(os.Stderr, logFile)
 
-		cmd := s.cmdFactory.Create("go", []string{"test", "-v", "-race", "-coverprofile=" + packageCodeCoveragePth, "-covermode=atomic", pkg}, &command.Opts{
+		args := []string{"test", "-v", "-race", "-coverprofile=" + packageCodeCoveragePth, "-covermode=atomic"}
+		if len(opts.TestOptions) > 0 {
+			args = append(args, opts.TestOptions...)
+		}
+		args = append(args, pkg)
+		cmd := s.cmdFactory.Create("go", args, &command.Opts{
 			Stdout: outWriter,
 			Stderr: errWriter,
 		})
