@@ -13,6 +13,10 @@ import (
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
+	"github.com/bitrise-steplib/steps-go-test/filemanager"
+	"github.com/bitrise-steplib/steps-go-test/testaddon"
+	"github.com/jstemmer/go-junit-report/v2/junit"
+	"github.com/jstemmer/go-junit-report/v2/parser/gotest"
 )
 
 type Inputs struct {
@@ -26,13 +30,14 @@ type Config struct {
 }
 
 type GoTestRunner struct {
-	logger         log.Logger
-	inputParser    stepconf.InputParser
-	envRepo        env.Repository
-	cmdFactory     command.Factory
-	outputExporter OutputExporter
-	pathProvider   pathutil.PathProvider
-	fileManager    FileManager
+	logger            log.Logger
+	inputParser       stepconf.InputParser
+	envRepo           env.Repository
+	cmdFactory        command.Factory
+	outputExporter    OutputExporter
+	pathProvider      pathutil.PathProvider
+	fileManager       filemanager.FileManager
+	testaddonExporter testaddon.Exporter
 }
 
 func NewGoTestRunner(
@@ -42,16 +47,18 @@ func NewGoTestRunner(
 	cmdFactory command.Factory,
 	outputExporter OutputExporter,
 	pathProvider pathutil.PathProvider,
-	fileManager FileManager,
+	fileManager filemanager.FileManager,
+	testaddonExporter testaddon.Exporter,
 ) GoTestRunner {
 	return GoTestRunner{
-		logger:         logger,
-		inputParser:    inputParser,
-		envRepo:        envRepo,
-		cmdFactory:     cmdFactory,
-		outputExporter: outputExporter,
-		pathProvider:   pathProvider,
-		fileManager:    fileManager,
+		logger:            logger,
+		inputParser:       inputParser,
+		envRepo:           envRepo,
+		cmdFactory:        cmdFactory,
+		outputExporter:    outputExporter,
+		pathProvider:      pathProvider,
+		fileManager:       fileManager,
+		testaddonExporter: testaddonExporter,
 	}
 }
 
@@ -85,7 +92,8 @@ type RunOpts struct {
 }
 
 type RunResult struct {
-	CodeCoveragePth string
+	CodeCoveragePth     string
+	TestRunLogFilePaths map[string]string
 }
 
 func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
@@ -99,10 +107,25 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 		return nil, fmt.Errorf("failed to get code coverage path: %w", err)
 	}
 
+	testRunLogFilePaths := map[string]string{}
+
 	for _, p := range opts.Packages {
+		logFile, err := s.testRunLogTmpFile()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create tmp file for test run logs: %w", err)
+		}
+		defer func() {
+			if err := logFile.Close(); err != nil {
+				s.logger.Warnf("Failed to close test run log file: %s", err)
+			}
+		}()
+
+		outWriter := io.MultiWriter(os.Stdout, logFile)
+		errWriter := io.MultiWriter(os.Stderr, logFile)
+
 		cmd := s.cmdFactory.Create("go", []string{"test", "-v", "-race", "-coverprofile=" + packageCodeCoveragePth, "-covermode=atomic", p}, &command.Opts{
-			Stdout: os.Stdout,
-			Stderr: os.Stderr,
+			Stdout: outWriter,
+			Stderr: errWriter,
 		})
 		s.logger.Printf("$ %s", cmd.PrintableCommandArgs())
 		if err := cmd.Run(); err != nil {
@@ -112,15 +135,19 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 		if err := s.appendPackageCoverageAndRecreate(packageCodeCoveragePth, codeCoveragePth); err != nil {
 			return nil, fmt.Errorf("failed to append package coverage: %w", err)
 		}
+
+		testRunLogFilePaths[p] = logFile.Name()
 	}
 
 	return &RunResult{
-		CodeCoveragePth: codeCoveragePth,
+		CodeCoveragePth:     codeCoveragePth,
+		TestRunLogFilePaths: testRunLogFilePaths,
 	}, nil
 }
 
 type ExportOpts struct {
-	CodeCoveragePth string
+	CodeCoveragePth     string
+	TestRunLogFilePaths map[string]string
 }
 
 func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
@@ -129,7 +156,51 @@ func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
 	}
 
 	s.logger.Donef("\ncode coverage is available at: GO_CODE_COVERAGE_REPORT_PATH=%s", opts.CodeCoveragePth)
+
+	idx := 0
+	for pkg, testRunLogFilePth := range opts.TestRunLogFilePaths {
+		idx++
+
+		testName := fmt.Sprintf("Test run #%d (%s)", idx, pkg)
+		testName = s.testaddonExporter.ReplaceUnsupportedFilenameCharacters(testName)
+
+		testRunLogFile, err := s.fileManager.Open(testRunLogFilePth)
+		if err != nil {
+			return fmt.Errorf("failed to open test run log file: %w", err)
+		}
+
+		report, err := gotest.NewParser().Parse(testRunLogFile)
+		if err != nil {
+			return fmt.Errorf("failed to parse go test report: %w", err)
+		}
+		reportFile, err := s.testaddonExporter.PrepareTestResultExport(testName)
+		if err != nil {
+			return fmt.Errorf("failed to prepare test result export: %w", err)
+		}
+
+		testsuits := junit.CreateFromReport(report, "")
+		if err := testsuits.WriteXML(reportFile); err != nil {
+			return fmt.Errorf("failed to write test report: %w", err)
+		}
+		s.logger.Printf("\nTest report is available at: %s", reportFile.Name())
+	}
+
 	return nil
+}
+
+func (s GoTestRunner) testRunLogTmpFile() (*os.File, error) {
+	tmpDir, err := s.pathProvider.CreateTempDir("go-test")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tmp dir for test run logs: %w", err)
+	}
+	pth := filepath.Join(tmpDir, "test_run.log")
+
+	f, err := s.fileManager.Create(pth)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }
 
 func (s GoTestRunner) createPackageCodeCoverageFile() (string, error) {

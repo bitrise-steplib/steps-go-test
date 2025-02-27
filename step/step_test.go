@@ -2,6 +2,7 @@ package step
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -22,9 +23,11 @@ func TestGoTestRunner_Run_WhenTestSucceedItWritesCodeCoverageToFile(t *testing.T
 	}
 
 	// Expected result
+	testRunLogFile := mockTestRunLogFile(t)
 	wantCoveragePth := filepath.Join(outputDir, "go_code_coverage.txt")
 	wantRunResult := &RunResult{
-		CodeCoveragePth: wantCoveragePth,
+		CodeCoveragePth:     wantCoveragePth,
+		TestRunLogFilePaths: map[string]string{"./...": testRunLogFile.Name()},
 	}
 
 	// Create mocks
@@ -50,6 +53,10 @@ func TestGoTestRunner_Run_WhenTestSucceedItWritesCodeCoverageToFile(t *testing.T
 	// It writes code coverage to file
 	mockFileManager.On("Open", wantCoveragePth).Return(strings.NewReader(""), nil)
 	mockFileManager.On("Write", wantCoveragePth, mock.Anything, mock.Anything).Return(nil)
+
+	// It writes test run logs to a file
+	testRunLogFilePth := filepath.Join(tmpDir, "test_run.log")
+	mockFileManager.On("Create", testRunLogFilePth).Return(testRunLogFile, nil)
 
 	s := GoTestRunner{
 		logger:         log.NewLogger(),
@@ -92,6 +99,10 @@ func TestGoTestRunner_Run_WhenTestFailsItReturnsAnError(t *testing.T) {
 	mockFileManager.On("Create", packageCoveragePth).Return(nil, nil)
 	mockFileManager.On("MkdirAll", outputDir, mock.Anything).Return(nil)
 
+	// It writes test run logs to a file
+	testRunLogFile := filepath.Join(tmpDir, "test_run.log")
+	mockFileManager.On("Create", testRunLogFile).Return(nil, nil)
+
 	s := GoTestRunner{
 		logger:         log.NewLogger(),
 		inputParser:    nil,
@@ -104,4 +115,11 @@ func TestGoTestRunner_Run_WhenTestFailsItReturnsAnError(t *testing.T) {
 	gotResult, err := s.Run(opts)
 	require.EqualError(t, err, "go test failed: exit status 1")
 	require.Nil(t, gotResult)
+}
+
+func mockTestRunLogFile(t *testing.T) *os.File {
+	testRunLogFilePth := filepath.Join(t.TempDir(), "test_run.log")
+	f, err := os.Create(testRunLogFilePth)
+	require.NoError(t, err)
+	return f
 }

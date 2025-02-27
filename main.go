@@ -13,7 +13,9 @@ import (
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
+	"github.com/bitrise-steplib/steps-go-test/filemanager"
 	"github.com/bitrise-steplib/steps-go-test/step"
+	"github.com/bitrise-steplib/steps-go-test/testaddon"
 )
 
 func main() {
@@ -37,7 +39,7 @@ func run() exitcode.ExitCode {
 		return exitcode.Failure
 	}
 
-	exportOpts := step.ExportOpts{CodeCoveragePth: runResult.CodeCoveragePth}
+	exportOpts := step.ExportOpts{CodeCoveragePth: runResult.CodeCoveragePth, TestRunLogFilePaths: runResult.TestRunLogFilePaths}
 	if err := goTestRunner.ExportOutput(exportOpts); err != nil {
 		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", err)))
 		return exitcode.Failure
@@ -52,7 +54,8 @@ func createGoTestRunner(logger log.Logger) step.GoTestRunner {
 	cmdFactory := command.NewFactory(envRepo)
 	exporter := export.NewExporter(cmdFactory)
 	pathProvider := pathutil.NewPathProvider()
-	fileManager := step.NewFileManager(fileutil.NewFileManager())
+	fileManager := filemanager.New(fileutil.NewFileManager())
+	testaddonExporter := testaddon.NewExporter(envRepo, fileManager)
 
-	return step.NewGoTestRunner(logger, inputParser, envRepo, cmdFactory, &exporter, pathProvider, fileManager)
+	return step.NewGoTestRunner(logger, inputParser, envRepo, cmdFactory, &exporter, pathProvider, fileManager, testaddonExporter)
 }
