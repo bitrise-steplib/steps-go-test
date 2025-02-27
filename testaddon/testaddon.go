@@ -2,7 +2,6 @@ package testaddon
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,7 +21,6 @@ type TestInfo struct {
 
 type Exporter interface {
 	PrepareTestResultExport(testName string) (*os.File, error)
-	ReplaceUnsupportedFilenameCharacters(s string) string
 }
 
 type exporter struct {
@@ -37,19 +35,14 @@ func NewExporter(envRepo env.Repository, fileManager filemanager.FileManager) Ex
 	}
 }
 
-func (e exporter) ReplaceUnsupportedFilenameCharacters(s string) string {
-	s = strings.ReplaceAll(s, "/", "-")
-	s = strings.ReplaceAll(s, ":", "-")
-	return s
-}
-
 func (e exporter) PrepareTestResultExport(testName string) (*os.File, error) {
 	testInfo := &TestInfo{
 		Name: testName,
 	}
 
 	stepTestResultDir := e.envRepo.Get("BITRISE_TEST_RESULT_DIR")
-	testResultDir := filepath.Join(stepTestResultDir, testName)
+	testResultFileName := replaceUnsupportedFilenameCharacters(testName)
+	testResultDir := filepath.Join(stepTestResultDir, testResultFileName)
 
 	if err := e.fileManager.MkdirAll(testResultDir, os.ModePerm); err != nil {
 		return nil, err
@@ -65,11 +58,17 @@ func (e exporter) PrepareTestResultExport(testName string) (*os.File, error) {
 		return nil, err
 	}
 
-	testReportFilePth := filepath.Join(testResultDir, fmt.Sprintf("%s-test_report.xml", testName))
+	testReportFilePth := filepath.Join(testResultDir, "test_report.xml")
 	testReportFile, err := e.fileManager.Create(testReportFilePth)
 	if err != nil {
 		return nil, err
 	}
 
 	return testReportFile, nil
+}
+
+func replaceUnsupportedFilenameCharacters(s string) string {
+	s = strings.ReplaceAll(s, "/", "-")
+	s = strings.ReplaceAll(s, ":", "-")
+	return s
 }

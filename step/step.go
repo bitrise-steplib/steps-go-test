@@ -109,7 +109,7 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 
 	testRunLogFilePaths := map[string]string{}
 
-	for _, p := range opts.Packages {
+	for _, pkg := range opts.Packages {
 		logFile, err := s.testRunLogTmpFile()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create tmp file for test run logs: %w", err)
@@ -118,7 +118,7 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 		outWriter := io.MultiWriter(os.Stdout, logFile)
 		errWriter := io.MultiWriter(os.Stderr, logFile)
 
-		cmd := s.cmdFactory.Create("go", []string{"test", "-v", "-race", "-coverprofile=" + packageCodeCoveragePth, "-covermode=atomic", p}, &command.Opts{
+		cmd := s.cmdFactory.Create("go", []string{"test", "-v", "-race", "-coverprofile=" + packageCodeCoveragePth, "-covermode=atomic", pkg}, &command.Opts{
 			Stdout: outWriter,
 			Stderr: errWriter,
 		})
@@ -136,7 +136,7 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 			return nil, fmt.Errorf("failed to append package coverage: %w", err)
 		}
 
-		testRunLogFilePaths[p] = logFile.Name()
+		testRunLogFilePaths[pkg] = logFile.Name()
 	}
 
 	return &RunResult{
@@ -157,13 +157,7 @@ func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
 
 	s.logger.Donef("\ncode coverage is available at: GO_CODE_COVERAGE_REPORT_PATH=%s", opts.CodeCoveragePth)
 
-	idx := 0
 	for pkg, testRunLogFilePth := range opts.TestRunLogFilePaths {
-		idx++
-
-		testName := fmt.Sprintf("Test run #%d (%s)", idx, pkg)
-		testName = s.testaddonExporter.ReplaceUnsupportedFilenameCharacters(testName)
-
 		testRunLogFile, err := s.fileManager.Open(testRunLogFilePth)
 		if err != nil {
 			return fmt.Errorf("failed to open test run log file: %w", err)
@@ -177,7 +171,7 @@ func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
 			return fmt.Errorf("failed to parse go test report: %w", parseErr)
 		}
 
-		reportFile, err := s.testaddonExporter.PrepareTestResultExport(testName)
+		reportFile, err := s.testaddonExporter.PrepareTestResultExport(pkg)
 		if err != nil {
 			return fmt.Errorf("failed to prepare test result export: %w", err)
 		}
