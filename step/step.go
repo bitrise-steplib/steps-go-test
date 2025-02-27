@@ -114,11 +114,6 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create tmp file for test run logs: %w", err)
 		}
-		defer func() {
-			if err := logFile.Close(); err != nil {
-				s.logger.Warnf("Failed to close test run log file: %s", err)
-			}
-		}()
 
 		outWriter := io.MultiWriter(os.Stdout, logFile)
 		errWriter := io.MultiWriter(os.Stderr, logFile)
@@ -128,8 +123,13 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 			Stderr: errWriter,
 		})
 		s.logger.Printf("$ %s", cmd.PrintableCommandArgs())
-		if err := cmd.Run(); err != nil {
-			return nil, fmt.Errorf("go test failed: %w", err)
+
+		testRunErr := cmd.Run()
+		if err := logFile.Close(); err != nil {
+			s.logger.Warnf("Failed to close test run log file: %s", err)
+		}
+		if testRunErr != nil {
+			return nil, fmt.Errorf("go test failed: %w", testRunErr)
 		}
 
 		if err := s.appendPackageCoverageAndRecreate(packageCodeCoveragePth, codeCoveragePth); err != nil {
@@ -169,10 +169,14 @@ func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
 			return fmt.Errorf("failed to open test run log file: %w", err)
 		}
 
-		report, err := gotest.NewParser().Parse(testRunLogFile)
-		if err != nil {
-			return fmt.Errorf("failed to parse go test report: %w", err)
+		report, parseErr := gotest.NewParser().Parse(testRunLogFile)
+		if err := testRunLogFile.Close(); err != nil {
+			s.logger.Warnf("Failed to close test run log file: %s", err)
 		}
+		if parseErr != nil {
+			return fmt.Errorf("failed to parse go test report: %w", parseErr)
+		}
+
 		reportFile, err := s.testaddonExporter.PrepareTestResultExport(testName)
 		if err != nil {
 			return fmt.Errorf("failed to prepare test result export: %w", err)
@@ -182,6 +186,7 @@ func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
 		if err := testsuits.WriteXML(reportFile); err != nil {
 			return fmt.Errorf("failed to write test report: %w", err)
 		}
+
 		s.logger.Printf("\nTest report is available at: %s", reportFile.Name())
 	}
 

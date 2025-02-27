@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/bitrise-io/go-utils/v2/log"
@@ -23,7 +22,7 @@ func TestGoTestRunner_Run_WhenTestSucceedItWritesCodeCoverageToFile(t *testing.T
 	}
 
 	// Expected result
-	testRunLogFile := mockTestRunLogFile(t)
+	testRunLogFile := createTmpFile(t)
 	wantCoveragePth := filepath.Join(outputDir, "go_code_coverage.txt")
 	wantRunResult := &RunResult{
 		CodeCoveragePth:     wantCoveragePth,
@@ -45,13 +44,13 @@ func TestGoTestRunner_Run_WhenTestSucceedItWritesCodeCoverageToFile(t *testing.T
 
 	// It recreates package coverage file for every packages' go test command run
 	mockPathProvider.On("CreateTempDir", mock.Anything).Return(tmpDir, nil)
-	mockFileManager.On("Open", packageCoveragePth).Return(strings.NewReader(""), nil)
-	mockFileManager.On("Create", packageCoveragePth).Return(nil, nil)
+	mockFileManager.On("Open", packageCoveragePth).Return(createTmpFile(t), nil)
+	mockFileManager.On("Create", packageCoveragePth).Return(createTmpFile(t), nil)
 	mockFileManager.On("MkdirAll", outputDir, mock.Anything).Return(nil)
 	mockFileManager.On("RemoveAll", packageCoveragePth).Return(nil)
 
 	// It writes code coverage to file
-	mockFileManager.On("Open", wantCoveragePth).Return(strings.NewReader(""), nil)
+	mockFileManager.On("Open", wantCoveragePth).Return(createTmpFile(t), nil)
 	mockFileManager.On("Write", wantCoveragePth, mock.Anything, mock.Anything).Return(nil)
 
 	// It writes test run logs to a file
@@ -96,12 +95,12 @@ func TestGoTestRunner_Run_WhenTestFailsItReturnsAnError(t *testing.T) {
 
 	// It recreates package coverage file for every packages' go test command run
 	mockPathProvider.On("CreateTempDir", mock.Anything).Return(tmpDir, nil)
-	mockFileManager.On("Create", packageCoveragePth).Return(nil, nil)
+	mockFileManager.On("Create", packageCoveragePth).Return(createTmpFile(t), nil)
 	mockFileManager.On("MkdirAll", outputDir, mock.Anything).Return(nil)
 
 	// It writes test run logs to a file
 	testRunLogFile := filepath.Join(tmpDir, "test_run.log")
-	mockFileManager.On("Create", testRunLogFile).Return(nil, nil)
+	mockFileManager.On("Create", testRunLogFile).Return(createTmpFile(t), nil)
 
 	s := GoTestRunner{
 		logger:         log.NewLogger(),
@@ -117,9 +116,9 @@ func TestGoTestRunner_Run_WhenTestFailsItReturnsAnError(t *testing.T) {
 	require.Nil(t, gotResult)
 }
 
-func mockTestRunLogFile(t *testing.T) *os.File {
-	testRunLogFilePth := filepath.Join(t.TempDir(), "test_run.log")
-	f, err := os.Create(testRunLogFilePth)
+func createTmpFile(t *testing.T) *os.File {
+	tmpFilePth := filepath.Join(t.TempDir(), "test_run.log")
+	f, err := os.Create(tmpFilePth)
 	require.NoError(t, err)
 	return f
 }

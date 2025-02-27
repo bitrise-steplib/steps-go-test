@@ -3,9 +3,7 @@
 package mocks
 
 import (
-	io "io"
 	fs "io/fs"
-
 	os "os"
 
 	mock "github.com/stretchr/testify/mock"
@@ -57,19 +55,19 @@ func (_m *FileManager) MkdirAll(path string, perm fs.FileMode) error {
 }
 
 // Open provides a mock function with given fields: path
-func (_m *FileManager) Open(path string) (io.Reader, error) {
+func (_m *FileManager) Open(path string) (*os.File, error) {
 	ret := _m.Called(path)
 
-	var r0 io.Reader
+	var r0 *os.File
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (io.Reader, error)); ok {
+	if rf, ok := ret.Get(0).(func(string) (*os.File, error)); ok {
 		return rf(path)
 	}
-	if rf, ok := ret.Get(0).(func(string) io.Reader); ok {
+	if rf, ok := ret.Get(0).(func(string) *os.File); ok {
 		r0 = rf(path)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.Reader)
+			r0 = ret.Get(0).(*os.File)
 		}
 	}
 

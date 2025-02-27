@@ -1,7 +1,6 @@
 package filemanager
 
 import (
-	"io"
 	"os"
 
 	"github.com/bitrise-io/go-utils/v2/fileutil"
@@ -12,7 +11,7 @@ import (
 type FileManager interface {
 	Create(name string) (*os.File, error)
 	MkdirAll(path string, perm os.FileMode) error
-	Open(path string) (io.Reader, error)
+	Open(path string) (*os.File, error)
 	Write(path string, value string, perm os.FileMode) error
 	RemoveAll(path string) error
 }
@@ -33,7 +32,7 @@ func (f fileManager) MkdirAll(path string, perm os.FileMode) error {
 	return os.MkdirAll(path, perm)
 }
 
-func (f fileManager) Open(path string) (io.Reader, error) {
+func (f fileManager) Open(path string) (*os.File, error) {
 	return f.fileManager.Open(path)
 }
 
