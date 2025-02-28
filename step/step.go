@@ -21,6 +21,7 @@ import (
 
 type Inputs struct {
 	Package        string `env:"package,required"`
+	Covermode      string `env:"covermode,opt[none,set,atomic,count]"`
 	TestOptions    string `env:"test_options"`
 	TestReportName string `env:"test_report_name"`
 	OutputDir      string `env:"output_dir,required"`
@@ -28,6 +29,7 @@ type Inputs struct {
 
 type Config struct {
 	Package        string
+	Covermode      string
 	TestOptions    []string
 	TestReportName string
 	OutputDir      string
@@ -81,9 +83,14 @@ func (s GoTestRunner) ProcessInputs() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse test options: %w", err)
 	}
+	covermode := strings.TrimSpace(inputs.Covermode)
+	if covermode == "none" {
+		covermode = ""
+	}
 
 	return &Config{
 		Package:        pkg,
+		Covermode:      covermode,
 		TestOptions:    testOptions,
 		TestReportName: testReportName,
 		OutputDir:      inputs.OutputDir,
@@ -92,6 +99,7 @@ func (s GoTestRunner) ProcessInputs() (*Config, error) {
 
 type RunOpts struct {
 	Package     string
+	Covermode   string
 	TestOptions []string
 	OutputDir   string
 }
@@ -102,16 +110,6 @@ type RunResult struct {
 }
 
 func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
-	codeCoverageFile, err := s.createCodeCoverageFile(opts.OutputDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create package code coverage file: %w", err)
-	}
-	defer func() {
-		if err := codeCoverageFile.Close(); err != nil {
-			s.logger.Warnf("Failed to close code coverage file: %s", err)
-		}
-	}()
-
 	testRunLogFile, err := s.testRunLogFile(opts.OutputDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tmp file for test run logs: %w", err)
@@ -122,10 +120,27 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 		}
 	}()
 
+	var codeCoverageFile *os.File
+	if opts.Covermode != "" {
+		var err error
+		codeCoverageFile, err = s.createCodeCoverageFile(opts.OutputDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create package code coverage file: %w", err)
+		}
+		defer func() {
+			if err := codeCoverageFile.Close(); err != nil {
+				s.logger.Warnf("Failed to close code coverage file: %s", err)
+			}
+		}()
+	}
+
 	outWriter := io.MultiWriter(os.Stdout, testRunLogFile)
 	errWriter := io.MultiWriter(os.Stderr, testRunLogFile)
 
-	args := []string{"test", "-v", "-coverprofile=" + codeCoverageFile.Name(), "-covermode=atomic"}
+	args := []string{"test", "-v"}
+	if opts.Covermode != "" {
+		args = append(args, "-covermode="+opts.Covermode, "-coverprofile="+codeCoverageFile.Name())
+	}
 	if len(opts.TestOptions) > 0 {
 		args = append(args, opts.TestOptions...)
 	}
@@ -137,10 +152,14 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 	})
 	s.logger.Printf("$ %s", cmd.PrintableCommandArgs())
 
-	return &RunResult{
-		CodeCoveragePth: codeCoverageFile.Name(),
-		TestRunLogPath:  testRunLogFile.Name(),
-	}, cmd.Run()
+	runResult := RunResult{
+		TestRunLogPath: testRunLogFile.Name(),
+	}
+	if opts.Covermode != "" {
+		runResult.CodeCoveragePth = codeCoverageFile.Name()
+	}
+
+	return &runResult, cmd.Run()
 }
 
 type ExportOpts struct {
@@ -155,10 +174,12 @@ func (s GoTestRunner) ExportOutput(opts ExportOpts) error {
 	}
 	s.logger.Donef("\ngo test run log file is available at: GO_TEST_RUN_LOG_PATH=%s", opts.TestRunLogPth)
 
-	if err := s.outputExporter.ExportOutput("GO_CODE_COVERAGE_REPORT_PATH", opts.CodeCoveragePth); err != nil {
-		return fmt.Errorf("failed to export GO_CODE_COVERAGE_REPORT_PATH=%s: %w", opts.CodeCoveragePth, err)
+	if opts.CodeCoveragePth != "" {
+		if err := s.outputExporter.ExportOutput("GO_CODE_COVERAGE_REPORT_PATH", opts.CodeCoveragePth); err != nil {
+			return fmt.Errorf("failed to export GO_CODE_COVERAGE_REPORT_PATH=%s: %w", opts.CodeCoveragePth, err)
+		}
+		s.logger.Donef("code coverage file is available at: GO_CODE_COVERAGE_REPORT_PATH=%s", opts.CodeCoveragePth)
 	}
-	s.logger.Donef("code coverage file is available at: GO_CODE_COVERAGE_REPORT_PATH=%s", opts.CodeCoveragePth)
 
 	testRunLogFile, err := s.fileManager.Open(opts.TestRunLogPth)
 	if err != nil {

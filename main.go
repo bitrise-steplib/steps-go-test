@@ -32,23 +32,36 @@ func run() exitcode.ExitCode {
 		return exitcode.Failure
 	}
 
-	runOpts := step.RunOpts{Package: config.Package, TestOptions: config.TestOptions, OutputDir: config.OutputDir}
+	runOpts := step.RunOpts{
+		Package:     config.Package,
+		Covermode:   config.Covermode,
+		TestOptions: config.TestOptions,
+		OutputDir:   config.OutputDir,
+	}
 	runResult, runErr := goTestRunner.Run(runOpts)
+	if runResult == nil {
+		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step main logic: %w", runErr)))
+		return exitcode.Failure
+	}
 
 	testReportName := config.TestReportName
 	if testReportName == "" {
 		testReportName = config.Package
 	}
-	exportOpts := step.ExportOpts{TestRunLogPth: runResult.TestRunLogPath, CodeCoveragePth: runResult.CodeCoveragePth, TestReportName: testReportName}
+	exportOpts := step.ExportOpts{
+		TestRunLogPth:   runResult.TestRunLogPath,
+		CodeCoveragePth: runResult.CodeCoveragePth,
+		TestReportName:  testReportName,
+	}
 	exportErr := goTestRunner.ExportOutput(exportOpts)
 
 	if runErr != nil && exportErr != nil {
 		logger.Warnf(errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", exportErr)))
-		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to run the tests: %w", runErr)))
+		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step main logic: %w", runErr)))
 		return exitcode.Failure
 	}
 	if runErr != nil {
-		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to run the tests: %w", runErr)))
+		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step main logic: %w", runErr)))
 		return exitcode.Failure
 	}
 	if exportErr != nil {

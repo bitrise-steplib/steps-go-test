@@ -15,7 +15,6 @@ type FileManager interface {
 	MkdirAll(path string, perm os.FileMode) error
 	Open(path string) (*os.File, error)
 	Write(path string, value string, perm os.FileMode) error
-	RemoveAll(path string) error
 }
 
 type fileManager struct {
@@ -40,8 +39,4 @@ func (f fileManager) Open(path string) (*os.File, error) {
 
 func (f fileManager) Write(path string, value string, perm os.FileMode) error {
 	return f.fileManager.Write(path, value, perm)
-}
-
-func (f fileManager) RemoveAll(path string) error {
-	return f.fileManager.RemoveAll(path)
 }

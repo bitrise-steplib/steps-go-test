@@ -18,6 +18,7 @@ func TestGoTestRunner_Run_WhenTestSucceeds(t *testing.T) {
 	outputDir := t.TempDir()
 	opts := RunOpts{
 		Package:   pkg,
+		Covermode: "atomic",
 		OutputDir: outputDir,
 	}
 
@@ -36,7 +37,7 @@ func TestGoTestRunner_Run_WhenTestSucceeds(t *testing.T) {
 	mockPathProvider := mocks.NewPathProvider(t)
 
 	// It runs go test command with code coverage enabled
-	mockCmdFactory.On("Create", "go", []string{"test", "-v", "-coverprofile=" + codeCoverageFile.Name(), "-covermode=atomic", pkg}, mock.Anything).Return(mockCmd)
+	mockCmdFactory.On("Create", "go", []string{"test", "-v", "-covermode=atomic", "-coverprofile=" + codeCoverageFile.Name(), pkg}, mock.Anything).Return(mockCmd)
 	mockCmd.On("Run").Return(nil)
 	mockCmd.On("PrintableCommandArgs").Return("")
 
@@ -70,10 +71,8 @@ func TestGoTestRunner_Run_WhenTestFails(t *testing.T) {
 
 	// Expected result
 	testRunLogFile := createTmpFile(outputDir, "go_test_run.log", t)
-	codeCoverageFile := createTmpFile(outputDir, "go_code_coverage.out", t)
 	wantRunResult := &RunResult{
-		CodeCoveragePth: codeCoverageFile.Name(),
-		TestRunLogPath:  testRunLogFile.Name(),
+		TestRunLogPath: testRunLogFile.Name(),
 	}
 
 	// Create mocks
@@ -83,13 +82,12 @@ func TestGoTestRunner_Run_WhenTestFails(t *testing.T) {
 	mockPathProvider := mocks.NewPathProvider(t)
 
 	// It runs go test command with code coverage enabled
-	mockCmdFactory.On("Create", "go", []string{"test", "-v", "-coverprofile=" + codeCoverageFile.Name(), "-covermode=atomic", pkg}, mock.Anything).Return(mockCmd)
+	mockCmdFactory.On("Create", "go", []string{"test", "-v", pkg}, mock.Anything).Return(mockCmd)
 	mockCmd.On("Run").Return(fmt.Errorf("exit status 1"))
 	mockCmd.On("PrintableCommandArgs").Return("")
 
 	// It creates package coverage file and test run log file
 	mockFileManager.On("MkdirAll", outputDir, mock.Anything).Return(nil)
-	mockFileManager.On("Create", codeCoverageFile.Name()).Return(codeCoverageFile, nil)
 	mockFileManager.On("Create", testRunLogFile.Name()).Return(testRunLogFile, nil)
 
 	s := GoTestRunner{

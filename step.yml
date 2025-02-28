@@ -1,7 +1,7 @@
-title: Go test
-summary: Runs Go test
+title: Run go test
+summary: Runs go test command and exports the test results.
 description: |-
-  Runs Go test on the given packages one-by-one:
+  Runs go test command and exports the test results.
 
   `go test -v <package>`
 
@@ -21,12 +21,34 @@ toolkit:
   go:
     package_name: github.com/bitrise-steplib/steps-go-test
 
-# TODO: update inputs
 inputs:
-- package: $BITRISE_GO_PACKAGES
+- package:
   opts:
-    title: Go test target package
-    summary: Go package to test.
+    title: Go package[s] being tested.
+    summary: The package argument to be passed to the go test command.
+    description: |-
+      The package argument to be passed to the go test command.
+
+      For example 'go test math', 'go test ./...', and even 'go test .'
+    is_required: true
+
+- covermode: none
+  opts:
+    title: coverage analysis mode
+    summary: Set the mode for coverage analysis for the package[s] being tested.
+    description: |-
+      Set the mode for coverage analysis for the package[s] being tested.
+
+      Possible values are:
+      - 'none': no coverage analysis
+      - 'set': bool: does this statement run?
+      - 'count': int: how many times does this statement run?
+      - 'atomic': int: count, but correct in multithreaded tests; significantly more expensive.
+    value_options:
+    - none
+    - set
+    - count
+    - atomic
     is_required: true
 
 - test_options:
@@ -37,7 +59,11 @@ inputs:
 - test_report_name:
   opts:
     title: Name of the test report
-    summary: Name of the test report to be used in Bitrise Test Reports.
+    summary: Name of the generated test report JUnit xml to be used in Bitrise Test Reports.
+    description: |-
+      Name of the generated test report JUnit xml to be used in Bitrise Test Reports.
+
+      If not specified the the provided package name will be used.
 
 - output_dir: $BITRISE_DEPLOY_DIR
   opts:
@@ -46,8 +72,16 @@ inputs:
     is_required: true
 
 outputs:
+- GO_TEST_RUN_LOG_PATH:
+  opts:
+    title: Test run log file path
+    summary: Path to the generated test run log file.
+
 - GO_CODE_COVERAGE_REPORT_PATH:
   opts:
-    title: Code coverage report file path
-    summary: Path to the code coverage report file.
-    description: Path to the code coverage report file, which contains each package's code coverage report.
+    title: Code coverage profile file path
+    summary: Path to the generated code coverage profile file.
+    description: |-
+      Path to the generated code coverage profile file.
+
+      This output will be available only if the covermode is not 'none'.
