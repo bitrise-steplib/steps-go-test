@@ -6,6 +6,8 @@ import (
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 )
 
+// TODO: Check what functions are used
+
 // FileManager ...
 // TODO: fileutil.FileManager interface should be extended with more methods
 type FileManager interface {

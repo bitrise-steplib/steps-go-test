@@ -32,16 +32,27 @@ func run() exitcode.ExitCode {
 		return exitcode.Failure
 	}
 
-	runOpts := step.RunOpts{Packages: config.Packages, TestOptions: config.TestOptions, OutputDir: config.OutputDir}
-	runResult, err := goTestRunner.Run(runOpts)
-	if err != nil {
-		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step: %w", err)))
+	runOpts := step.RunOpts{Package: config.Package, TestOptions: config.TestOptions, OutputDir: config.OutputDir}
+	runResult, runErr := goTestRunner.Run(runOpts)
+
+	testReportName := config.TestReportName
+	if testReportName == "" {
+		testReportName = config.Package
+	}
+	exportOpts := step.ExportOpts{TestRunLogPth: runResult.TestRunLogPath, CodeCoveragePth: runResult.CodeCoveragePth, TestReportName: testReportName}
+	exportErr := goTestRunner.ExportOutput(exportOpts)
+
+	if runErr != nil && exportErr != nil {
+		logger.Warnf(errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", exportErr)))
+		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to run the tests: %w", runErr)))
 		return exitcode.Failure
 	}
-
-	exportOpts := step.ExportOpts{CodeCoveragePth: runResult.CodeCoveragePth, TestRunLogFilePaths: runResult.TestRunLogFilePaths, PackagesToTestReportNames: config.PackagesToTestReportNames}
-	if err := goTestRunner.ExportOutput(exportOpts); err != nil {
-		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", err)))
+	if runErr != nil {
+		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to run the tests: %w", runErr)))
+		return exitcode.Failure
+	}
+	if exportErr != nil {
+		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", exportErr)))
 		return exitcode.Failure
 	}
 
@@ -55,7 +66,7 @@ func createGoTestRunner(logger log.Logger) step.GoTestRunner {
 	exporter := export.NewExporter(cmdFactory)
 	pathProvider := pathutil.NewPathProvider()
 	fileManager := filemanager.New(fileutil.NewFileManager())
-	testaddonExporter := testaddon.NewExporter(envRepo, fileManager)
+	testAddonExporter := testaddon.NewExporter(envRepo, fileManager)
 
-	return step.NewGoTestRunner(logger, inputParser, envRepo, cmdFactory, &exporter, pathProvider, fileManager, testaddonExporter)
+	return step.NewGoTestRunner(logger, inputParser, envRepo, cmdFactory, &exporter, pathProvider, fileManager, testAddonExporter)
 }

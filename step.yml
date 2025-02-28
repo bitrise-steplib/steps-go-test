@@ -21,20 +21,12 @@ toolkit:
   go:
     package_name: github.com/bitrise-steplib/steps-go-test
 
+# TODO: update inputs
 inputs:
-- packages: $BITRISE_GO_PACKAGES
+- package: $BITRISE_GO_PACKAGES
   opts:
-    title: Go test target packages
-    summary: List of Go packages to test.
-    description: |-
-      Newline separated list of Go packages, to run the Go test command against.
-
-      __Example:__
-
-      ```
-      github.com/my/step
-      github.com/bitrise/step/tool
-      ```
+    title: Go test target package
+    summary: Go package to test.
     is_required: true
 
 - test_options:
