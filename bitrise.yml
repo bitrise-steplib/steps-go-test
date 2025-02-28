@@ -17,6 +17,7 @@ workflows:
     - path::./:
         inputs:
         - package: ./...
+        - covermode: set
         - test_report_name: All tests
 
   generate_readme:
