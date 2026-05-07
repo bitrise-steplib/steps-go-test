@@ -16,7 +16,7 @@ const (
 
 // TestInfo ...
 type TestInfo struct {
-	Name string `json:"test-name" yaml:"test-name"` // Test name
+	Name string `json:"test-name"`
 }
 
 type Exporter interface {

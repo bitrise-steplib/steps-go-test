@@ -100,7 +100,7 @@ func TestGoTestRunner_Run_WhenTestFails(t *testing.T) {
 		fileManager:    mockFileManager,
 	}
 	gotResult, err := s.Run(opts)
-	require.EqualError(t, err, "exit status 1")
+	require.EqualError(t, err, "go test failed: exit status 1")
 	require.Equal(t, wantRunResult, gotResult)
 }
 

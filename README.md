@@ -28,7 +28,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | `package` | The package argument to be passed to the go test command.  For example 'go test math', 'go test ./...', and even 'go test .' | required |  |
 | `covermode` | Set the mode for coverage analysis for the package[s] being tested.  Possible values are: - 'none': no coverage analysis - 'set': bool: does this statement run? - 'count': int: how many times does this statement run? - 'atomic': int: count, but correct in multithreaded tests; significantly more expensive. | required | `none` |
 | `test_options` | Additional options to be added to the executed go test command. |  |  |
-| `test_report_name` | Name of the generated test report JUnit xml to be used in Bitrise Test Reports.  If not specified the the provided package name will be used. |  |  |
+| `test_report_name` | Name of the generated test report JUnit xml to be used in Bitrise Test Reports.  If not specified the provided package name will be used. |  |  |
 | `output_dir` | This directory will contain the generated artifacts. | required | `$BITRISE_DEPLOY_DIR` |
 </details>
 

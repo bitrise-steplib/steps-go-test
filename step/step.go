@@ -21,7 +21,7 @@ import (
 
 type Inputs struct {
 	Package        string `env:"package,required"`
-	Covermode      string `env:"covermode,opt[none,set,atomic,count]"`
+	Covermode      string `env:"covermode,opt[none,set,count,atomic]"`
 	TestOptions    string `env:"test_options"`
 	TestReportName string `env:"test_report_name"`
 	OutputDir      string `env:"output_dir,required"`
@@ -159,7 +159,10 @@ func (s GoTestRunner) Run(opts RunOpts) (*RunResult, error) {
 		runResult.CodeCoveragePth = codeCoverageFile.Name()
 	}
 
-	return &runResult, cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return &runResult, fmt.Errorf("go test failed: %w", err)
+	}
+	return &runResult, nil
 }
 
 type ExportOpts struct {
