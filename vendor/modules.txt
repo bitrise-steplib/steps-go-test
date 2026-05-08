@@ -20,6 +20,18 @@ github.com/bitrise-io/go-utils/v2/pathutil
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
+# github.com/google/go-cmp v0.6.0
+## explicit; go 1.13
+# github.com/jstemmer/go-junit-report/v2 v2.1.0
+## explicit; go 1.13
+github.com/jstemmer/go-junit-report/v2/gtr
+github.com/jstemmer/go-junit-report/v2/junit
+github.com/jstemmer/go-junit-report/v2/parser/gotest
+github.com/jstemmer/go-junit-report/v2/parser/gotest/internal/collector
+github.com/jstemmer/go-junit-report/v2/parser/gotest/internal/reader
+# github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
+## explicit
+github.com/kballard/go-shellquote
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib

@@ -7,7 +7,9 @@ workflows:
     - path::./:
         title: Step Test
         inputs:
-        - packages: ./...
+        - package: ./...
+        - covermode: set
+        - test_report_name: All tests
     - git::https://github.com/bitrise-steplib/bitrise-step-check-step-outputs.git@main:
         is_always_run: true
         inputs:

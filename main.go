@@ -13,7 +13,9 @@ import (
 	"github.com/bitrise-io/go-utils/v2/fileutil"
 	"github.com/bitrise-io/go-utils/v2/log"
 	"github.com/bitrise-io/go-utils/v2/pathutil"
+	"github.com/bitrise-steplib/steps-go-test/filemanager"
 	"github.com/bitrise-steplib/steps-go-test/step"
+	"github.com/bitrise-steplib/steps-go-test/testaddon"
 )
 
 func main() {
@@ -30,16 +32,40 @@ func run() exitcode.ExitCode {
 		return exitcode.Failure
 	}
 
-	runOpts := step.RunOpts(config)
-	runResult, err := goTestRunner.Run(runOpts)
-	if err != nil {
-		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step: %w", err)))
+	runOpts := step.RunOpts{
+		Package:     config.Package,
+		Covermode:   config.Covermode,
+		TestOptions: config.TestOptions,
+		OutputDir:   config.OutputDir,
+	}
+	runResult, runErr := goTestRunner.Run(runOpts)
+	if runResult == nil {
+		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step main logic: %w", runErr)))
 		return exitcode.Failure
 	}
 
-	exportOpts := step.ExportOpts{CodeCoveragePth: runResult.CodeCoveragePth}
-	if err := goTestRunner.ExportOutput(exportOpts); err != nil {
-		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", err)))
+	testReportName := config.TestReportName
+	if testReportName == "" {
+		testReportName = config.Package
+	}
+	exportOpts := step.ExportOpts{
+		TestRunLogPth:   runResult.TestRunLogPath,
+		CodeCoveragePth: runResult.CodeCoveragePth,
+		TestReportName:  testReportName,
+	}
+	exportErr := goTestRunner.ExportOutput(exportOpts)
+
+	if runErr != nil && exportErr != nil {
+		logger.Warnf(errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", exportErr)))
+		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step main logic: %w", runErr)))
+		return exitcode.Failure
+	}
+	if runErr != nil {
+		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step main logic: %w", runErr)))
+		return exitcode.Failure
+	}
+	if exportErr != nil {
+		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to export Step outputs: %w", exportErr)))
 		return exitcode.Failure
 	}
 
@@ -52,7 +78,8 @@ func createGoTestRunner(logger log.Logger) step.GoTestRunner {
 	cmdFactory := command.NewFactory(envRepo)
 	exporter := export.NewExporter(cmdFactory)
 	pathProvider := pathutil.NewPathProvider()
-	fileManager := step.NewFileManager(fileutil.NewFileManager())
+	fileManager := filemanager.New(fileutil.NewFileManager())
+	testAddonExporter := testaddon.NewExporter(envRepo, fileManager)
 
-	return step.NewGoTestRunner(logger, inputParser, envRepo, cmdFactory, &exporter, pathProvider, fileManager)
+	return step.NewGoTestRunner(logger, inputParser, envRepo, cmdFactory, &exporter, pathProvider, fileManager, testAddonExporter)
 }

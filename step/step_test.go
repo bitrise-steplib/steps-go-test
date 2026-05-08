@@ -2,8 +2,8 @@ package step
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/bitrise-io/go-utils/v2/log"
@@ -12,19 +12,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGoTestRunner_Run_WhenTestSucceedItWritesCodeCoverageToFile(t *testing.T) {
+func TestGoTestRunner_Run_WhenTestSucceeds(t *testing.T) {
 	// Create run options
-	packages := []string{"./..."}
-	outputDir := "output"
+	pkg := "./..."
+	outputDir := t.TempDir()
 	opts := RunOpts{
-		Packages:  packages,
+		Package:   pkg,
+		Covermode: "atomic",
 		OutputDir: outputDir,
 	}
 
 	// Expected result
-	wantCoveragePth := filepath.Join(outputDir, "go_code_coverage.txt")
+	testRunLogFile := createTmpFile(outputDir, "go_test_run.log", t)
+	codeCoverageFile := createTmpFile(outputDir, "go_code_coverage.out", t)
 	wantRunResult := &RunResult{
-		CodeCoveragePth: wantCoveragePth,
+		CodeCoveragePth: codeCoverageFile.Name(),
+		TestRunLogPath:  testRunLogFile.Name(),
 	}
 
 	// Create mocks
@@ -34,22 +37,14 @@ func TestGoTestRunner_Run_WhenTestSucceedItWritesCodeCoverageToFile(t *testing.T
 	mockPathProvider := mocks.NewPathProvider(t)
 
 	// It runs go test command with code coverage enabled
-	tmpDir := "tmp_dir"
-	packageCoveragePth := filepath.Join(tmpDir, "profile.out")
-	mockCmdFactory.On("Create", "go", []string{"test", "-v", "-race", "-coverprofile=" + packageCoveragePth, "-covermode=atomic", packages[0]}, mock.Anything).Return(mockCmd)
+	mockCmdFactory.On("Create", "go", []string{"test", "-v", "-covermode=atomic", "-coverprofile=" + codeCoverageFile.Name(), pkg}, mock.Anything).Return(mockCmd)
 	mockCmd.On("Run").Return(nil)
 	mockCmd.On("PrintableCommandArgs").Return("")
 
-	// It recreates package coverage file for every packages' go test command run
-	mockPathProvider.On("CreateTempDir", mock.Anything).Return(tmpDir, nil)
-	mockFileManager.On("Open", packageCoveragePth).Return(strings.NewReader(""), nil)
-	mockFileManager.On("Create", packageCoveragePth).Return(nil, nil)
+	// It creates package coverage file and test run log file
 	mockFileManager.On("MkdirAll", outputDir, mock.Anything).Return(nil)
-	mockFileManager.On("RemoveAll", packageCoveragePth).Return(nil)
-
-	// It writes code coverage to file
-	mockFileManager.On("Open", wantCoveragePth).Return(strings.NewReader(""), nil)
-	mockFileManager.On("Write", wantCoveragePth, mock.Anything, mock.Anything).Return(nil)
+	mockFileManager.On("Create", codeCoverageFile.Name()).Return(codeCoverageFile, nil)
+	mockFileManager.On("Create", testRunLogFile.Name()).Return(testRunLogFile, nil)
 
 	s := GoTestRunner{
 		logger:         log.NewLogger(),
@@ -60,18 +55,24 @@ func TestGoTestRunner_Run_WhenTestSucceedItWritesCodeCoverageToFile(t *testing.T
 		pathProvider:   mockPathProvider,
 		fileManager:    mockFileManager,
 	}
-	runResult, err := s.Run(opts)
+	gotResult, err := s.Run(opts)
 	require.NoError(t, err)
-	require.Equal(t, wantRunResult, runResult)
+	require.Equal(t, wantRunResult, gotResult)
 }
 
-func TestGoTestRunner_Run_WhenTestFailsItReturnsAnError(t *testing.T) {
+func TestGoTestRunner_Run_WhenTestFails(t *testing.T) {
 	// Create run options
-	packages := []string{"./..."}
-	outputDir := "output"
+	pkg := "./..."
+	outputDir := t.TempDir()
 	opts := RunOpts{
-		Packages:  packages,
+		Package:   pkg,
 		OutputDir: outputDir,
+	}
+
+	// Expected result
+	testRunLogFile := createTmpFile(outputDir, "go_test_run.log", t)
+	wantRunResult := &RunResult{
+		TestRunLogPath: testRunLogFile.Name(),
 	}
 
 	// Create mocks
@@ -81,16 +82,13 @@ func TestGoTestRunner_Run_WhenTestFailsItReturnsAnError(t *testing.T) {
 	mockPathProvider := mocks.NewPathProvider(t)
 
 	// It runs go test command with code coverage enabled
-	tmpDir := "tmp_dir"
-	packageCoveragePth := filepath.Join(tmpDir, "profile.out")
-	mockCmdFactory.On("Create", "go", []string{"test", "-v", "-race", "-coverprofile=" + packageCoveragePth, "-covermode=atomic", packages[0]}, mock.Anything).Return(mockCmd)
+	mockCmdFactory.On("Create", "go", []string{"test", "-v", pkg}, mock.Anything).Return(mockCmd)
 	mockCmd.On("Run").Return(fmt.Errorf("exit status 1"))
 	mockCmd.On("PrintableCommandArgs").Return("")
 
-	// It recreates package coverage file for every packages' go test command run
-	mockPathProvider.On("CreateTempDir", mock.Anything).Return(tmpDir, nil)
-	mockFileManager.On("Create", packageCoveragePth).Return(nil, nil)
+	// It creates package coverage file and test run log file
 	mockFileManager.On("MkdirAll", outputDir, mock.Anything).Return(nil)
+	mockFileManager.On("Create", testRunLogFile.Name()).Return(testRunLogFile, nil)
 
 	s := GoTestRunner{
 		logger:         log.NewLogger(),
@@ -103,5 +101,12 @@ func TestGoTestRunner_Run_WhenTestFailsItReturnsAnError(t *testing.T) {
 	}
 	gotResult, err := s.Run(opts)
 	require.EqualError(t, err, "go test failed: exit status 1")
-	require.Nil(t, gotResult)
+	require.Equal(t, wantRunResult, gotResult)
+}
+
+func createTmpFile(tmpDir string, name string, t *testing.T) *os.File {
+	tmpFilePth := filepath.Join(tmpDir, name)
+	f, err := os.Create(tmpFilePth)
+	require.NoError(t, err)
+	return f
 }
